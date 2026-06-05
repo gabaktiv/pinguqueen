@@ -1,0 +1,20 @@
+# Build-Verzeichnisse
+build/
+bin/
+out/
+cmake-build-debug/
+cmake-build-release/
+
+# Kompilierte Dateien
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE-spezifische Dateien (z.B. Visual Studio oder CLion)
+.vs/
+.idea/
+*.user
+*.suo
