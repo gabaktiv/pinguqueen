@@ -5,7 +5,7 @@
 
 
 
-namespace PQ
+namespace pinguqueen
 {
     using u8  = std::uint8_t;
     using i8 = std::int8_t;
@@ -18,9 +18,6 @@ namespace PQ
 
     using f32 = std::float_t;
     using f64 = std::double_t;
-
-
-
 
 
 }

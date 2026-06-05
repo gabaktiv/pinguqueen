@@ -1,7 +1,7 @@
 #include <iostream>
 #include "global.hpp"
 
-
+#include "radix-trie/radix-trie.hpp"
 
 
 
