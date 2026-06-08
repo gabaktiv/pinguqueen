@@ -2,7 +2,7 @@
 #include "../global.hpp"
 #include "node.hpp"
 
-//Todo: Implementation als Single-Ton-Art
+//TODO: Implementation als Single-Ton-Art
 
 namespace pinguqueen {
 
