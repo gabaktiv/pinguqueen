@@ -14,9 +14,6 @@ void pinguqueen::RadixTrie::free_node(Node* node)
         case NodeType::Node48 :
             delete static_cast<Node48*>(node);
             break;
-        case NodeType::Node128 :
-            delete static_cast<Node128*>(node);
-            break;
         case NodeType::Node256 :
             delete static_cast<Node265*>(node);
             break;

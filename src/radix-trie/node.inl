@@ -1,5 +1,8 @@
 
+#pragma once
+
 //Alles hier steht im Namespace von pinguqueen, da der include dieser datei in der node.hpp im abteil des Namespaces eingefügt wurde
+
 
     static inline bool is_leaf(const Node* node_ptr) noexcept {
         return (reinterpret_cast<uintptr_t>(node_ptr) & 1) == 1;
