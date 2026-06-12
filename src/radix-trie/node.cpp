@@ -1,5 +1,5 @@
 #include "node.hpp"
-
+#include <format>
 namespace pinguqueen {
 
     Node4::~Node4() {
@@ -42,16 +42,10 @@ namespace pinguqueen {
         return nullptr;
     }
 
-    bool Node48::is_full() const noexcept {
-        for (auto* child : _children) {
-            if (child == nullptr) return false;
-        }
-        return true;
-    }
 
     Node* Node48::find_child(u8 key_byte) noexcept {
         u8 index = _keys[key_byte];
-        if (index != 48) { // 48 ist der "Null"-Marker
+        if (index != NOTHING) { // 48 ist der "Null"-Marker
             return _children[index];
         }
         return nullptr;
@@ -61,8 +55,14 @@ namespace pinguqueen {
         return _children[key_byte];
     }
 
+    bool Node48::is_full() const noexcept {
+        for (auto* child : _children) {
+            if (child == nullptr) return false;
+        }
+        return true;
+    }
 
-
+    //!DANGEROUS, NO GROW IF FULL
     void Node4::insert_pure(u8 key, Node* child) noexcept {
         assert(_child_count < 4);
         u8 insert_pos = 0;
@@ -78,6 +78,7 @@ namespace pinguqueen {
         _child_count++;
     }
 
+    //!DANGEROUS, NO GROW IF FULL
     void Node16::insert_pure(u8 key, Node* child) noexcept {
         assert(_child_count < 16);
         u8 insert_pos = 0;
@@ -93,6 +94,7 @@ namespace pinguqueen {
         _child_count++;
     }
 
+    //!DANGEROUS, NO GROW IF FULL
     void Node48::insert_pure(u8 key, Node* child) noexcept {
         assert(_child_count < 48);
         u8 free_idx = 0;
@@ -107,6 +109,7 @@ namespace pinguqueen {
         _child_count++;
     }
 
+    //!DANGEROUS, NO GROW IF FULL
     void Node256::insert_pure(u8 key, Node* child) noexcept {
         assert(_children[key] == nullptr);
         _children[key] = child;

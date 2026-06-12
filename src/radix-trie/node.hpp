@@ -13,30 +13,33 @@ namespace pinguqueen {
 
     enum class NodeType : u8 { Node4, Node16, Node48, Node256, LeafNode };
 
-    struct Node
+    class Node
     {
+    public:
         //  Anzahl der zu blind überspringenden Zeichen des Suchstrings
         u32 _prefix_skip_length = 0;
-        u8 _child_count = 0;
+        u16 _child_count = 0;
         NodeType _type = NodeType::Node4;
         bool _isleaf : 1 = false;
 
 
-        public:
-            Node() = default;
-            virtual ~Node() = default;
-            Node(const Node&) = delete;
-            Node& operator=(const Node&) = delete;
-            Node(Node&&) = delete;
-            Node& operator=(Node&&) = delete;
 
-            [[nodiscard]] bool is_leaf() const noexcept { return _isleaf; }
-            [[nodiscard]] virtual bool is_full() const noexcept = 0;
-            virtual Node* find_child(u8 key_byte) noexcept = 0;
+        Node() = default;
+        virtual ~Node() = default;
+        Node(const Node&) = delete;
+        Node& operator=(const Node&) = delete;
+        Node(Node&&) = delete;
+        Node& operator=(Node&&) = delete;
+
+        [[nodiscard]] bool is_leaf() const noexcept { return _isleaf; }
+        [[nodiscard]] virtual bool is_full() const noexcept = 0;
+        virtual Node* find_child(u8 key_byte) noexcept = 0;
 
     };
 
-    struct LeafNode : public Node {
+    class LeafNode : public Node
+    {
+    public:
         std::string _full_key;
         FileInfo* _metadata = nullptr;
 
@@ -45,7 +48,9 @@ namespace pinguqueen {
 
     };
 
-    struct Node4 : public Node{
+    class Node4 : public Node
+    {
+    public:
         u8 _keys[4]{};
         Node* _children[4]{};
 
@@ -59,7 +64,9 @@ namespace pinguqueen {
         void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW OF NODE IF FULL
     };
 
-    struct Node16 : public Node{
+    class Node16 : public Node
+    {
+    public:
         u8 _keys[16]{};
         Node* _children[16]{};
 
@@ -70,12 +77,15 @@ namespace pinguqueen {
 
         [[nodiscard]] bool is_full() const noexcept override { return _child_count == 16; }
         Node* find_child(u8 key_byte) noexcept override;
-        void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW OF NODE IF FULL
+        void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW IF FULL
     };
 
-    struct Node48 : public Node{
+    class Node48 : public Node
+    {
+    public:
         u8 _keys[256]{};
         Node* _children[48]{};
+        static constexpr int NOTHING = 48;
 
         Node48() = default;
         ~Node48() override;
@@ -84,10 +94,12 @@ namespace pinguqueen {
 
         [[nodiscard]] bool is_full() const noexcept override;
         Node* find_child(u8 key_byte) noexcept override;
-        void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW OF NODE IF FULL
+        void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW IF FULL
     };
 
-    struct Node256 : public Node{
+    class Node256 : public Node
+    {
+    public:
         Node* _children[256]{};
 
         Node256() = default;
@@ -95,7 +107,7 @@ namespace pinguqueen {
         Node256(const Node256&) = delete;
         Node256& operator=(const Node256&) = delete;
 
-        [[nodiscard]] bool is_full() const noexcept override { return _child_count == 255; }
+        [[nodiscard]] bool is_full() const noexcept override { return _child_count == 256; }
         Node* find_child(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW OF NODE IF FULL
     };

@@ -129,8 +129,18 @@ namespace pinguqueen
                 default:
                     break;
             }
+    }
 
-
+    u32 RadixTrie::check_prefix(const Node* node, std::string_view key, std::string_view valid_key, u32 depth) noexcept
+    {
+        u32 p = 0;
+        while (p < node->_prefix_skip_length &&
+               (depth + p) < key.length() &&
+               key[depth + p] == valid_key[depth + p])
+        {
+            p++;
+        }
+        return p;
     }
 
     void RadixTrie::insert(Node*& node, std::string_view key, FileInfo* information, u32 depth)
@@ -168,16 +178,27 @@ namespace pinguqueen
             return;
         }
 
-        // Nutzt ab hier die virtuelle Suche, um ohne riesige Switch-Cases tiefer zu gehen!
-        Node* next = node->find_child(static_cast<u8>(key[depth]));
+        u32 p= check_prefix(node, key, key, depth);
+        if (p != node->_prefix_skip_length) {
+            Node* newNode = new Node4;
+            add_child(newNode, key[depth+p], leaf);
+            add_child(newNode, node->_prefix_skip_length, node);
+            newNode->_prefix_skip_length = p;
+            node->_prefix_skip_length -= (p + 1);
+            replace(node, newNode);
+            return;
+
+        }
+
+        Node* next = node->find_child(key[depth]);
         if (next != nullptr)
         {
             insert(next, key, information, depth + 1);
         }
         else
         {
-            // Ab hier geht dein TODO-Kommentar weiter, wenn der Knoten voll ist...
-            add_child(node, static_cast<u8>(key[depth]), leaf);
+            add_child(node, key[depth], leaf);
         }
+
     }
 }

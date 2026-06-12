@@ -20,6 +20,7 @@ namespace pinguqueen
         static Node* grow_48_to_256(Node48* old_node) noexcept;
 
         static void add_child(Node*& parent, u8 key, Node* child) noexcept;
+        static u32 check_prefix(const Node* node, std::string_view key, std::string_view valid_key, u32 depth) noexcept;
 
     public:
         RadixTrie() = default;
