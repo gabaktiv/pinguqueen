@@ -1,4 +1,4 @@
-#Chatgpt generierte Cmake
+#Chatgpt generierte strenge Cmake
 
 cmake_minimum_required(VERSION 4.2.2)
 project(pinguqueen CXX)
@@ -9,7 +9,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # Deaktiviert Compiler-spezifische Erweiterungen für echtes Standard-C++
 
 # 2. Das Executable erstellen
-add_executable(pinguqueen src/main.cpp)
+add_executable(pinguqueen src/main.cpp
+        src/radix-trie/radix-trie.cpp)
 
 # 3. Extrem strenge Compiler-Flags NUR für Clang (und GCC) definieren
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")

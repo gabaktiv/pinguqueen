@@ -2,7 +2,7 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
-
+#include  <cassert>
 
 
 namespace pinguqueen

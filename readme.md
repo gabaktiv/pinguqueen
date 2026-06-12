@@ -10,7 +10,7 @@ in einer komprimierten Binärdatei speichert und in einem Radix-Trie abbildet. D
 
 **Zusätzlich/Optional** könnten Live-Veränderungen an dem Dateisystem mit inotify abgefangen und in dem Radix-Trie angepasst werden.
 
-Dieses Projekt ist eine wilde Mischung aus Data-Oriented-Design in den Datenstrukturen und schöner Objektorientierung im File-Handling und Frontend.
+Dieses Projekt ist eine wilde Mischung aus richtig hässlichem Data-Oriented-Design in den Datenstrukturen und hoffentlich schöner Objektorientierung im File-Handling und Frontend.
 
 
 
