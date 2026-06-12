@@ -33,48 +33,60 @@ namespace pinguqueen
         return leaf->_full_key;
     }
 
-    Node* RadixTrie::grow_4_to_16(Node4* old_node) noexcept
-    {
+    void RadixTrie::grow_4_to_16(Node*& parent_slot) noexcept {
+        auto* old_node = static_cast<Node4*>(parent_slot);
         auto* new_node = new Node16();
-        new_node->_type = NodeType::Node16;
-        new_node->_child_count = old_node->_child_count;
 
-        for (u8 i = 0; i < 4; ++i){
+
+        new_node->_prefix_skip_length = old_node->_prefix_skip_length;
+        new_node->_child_count = old_node->_child_count;
+        new_node->_type = NodeType::Node16;
+
+        for (u16 i = 0; i < old_node->_child_count; ++i) {
             new_node->_keys[i] = old_node->_keys[i];
             new_node->_children[i] = old_node->_children[i];
+
+            old_node->_children[i] = nullptr;
         }
 
-        old_node->_child_count = 0; // Verhindert, dass Kinder beim Löschen sterben
+        old_node->_child_count = 0;
         delete old_node;
-        return new_node;
+
+        parent_slot = new_node;
     }
 
-    Node* RadixTrie::grow_16_to_48(Node16* old_node) noexcept
+    void RadixTrie::grow_16_to_48(Node*& parent_slot) noexcept
     {
+        auto* old_node = static_cast<Node16*>(parent_slot);
         auto* new_node = new Node48();
-        new_node->_type = NodeType::Node48;
-        new_node->_child_count = old_node->_child_count;
 
-        std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), static_cast<u8>(48));
+        new_node->_prefix_skip_length = old_node->_prefix_skip_length;
+        new_node->_type = NodeType::Node48;
+        new_node->_child_count = parent_slot->_child_count;
+
+        std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), static_cast<u8>(Node48::NOTHING));
 
         for (u8 i = 0; i < 16; ++i){
             u8 key_byte = old_node->_keys[i];
             new_node->_children[i] = old_node->_children[i];
             new_node->_keys[key_byte] = i;
+            old_node->_children[i] = nullptr;
         }
 
         old_node->_child_count = 0;
         delete old_node;
-        return new_node;
+
+        parent_slot = new_node;
     }
 
-    Node* RadixTrie::grow_48_to_256(Node48* old_node) noexcept
+    void RadixTrie::grow_48_to_256(Node*& parent_slot) noexcept
     {
+        auto* old_node = static_cast<Node48*>(parent_slot);
         auto* new_node = new Node256();
         new_node->_type = NodeType::Node256;
         new_node->_child_count = old_node->_child_count;
 
-        for (uint32_t key_byte = 0; key_byte < 256; ++key_byte){
+        for (u16 key_byte = 0; key_byte < 256; ++key_byte){
             u8 index = old_node->_keys[key_byte];
             if (index != 48){
                 new_node->_children[key_byte] = old_node->_children[index];
@@ -82,8 +94,10 @@ namespace pinguqueen
         }
 
         std::fill(std::begin(old_node->_children), std::end(old_node->_children), nullptr);
+        old_node->_child_count = 0;
         delete old_node;
-        return new_node;
+
+        parent_slot = new_node;
     }
 
     void RadixTrie::add_child(Node*& parent, u8 key, Node* child) noexcept
@@ -92,13 +106,13 @@ namespace pinguqueen
             switch (parent->_type)
             {
                 case NodeType::Node4:
-                    parent = grow_4_to_16(static_cast<Node4*>(parent));
+                    grow_4_to_16(parent);
                     break;
                 case NodeType::Node16:
-                    parent = grow_16_to_48(static_cast<Node16*>(parent));
+                    grow_16_to_48(parent);
                     break;
                 case NodeType::Node48:
-                    parent = grow_48_to_256(static_cast<Node48*>(parent));
+                    grow_48_to_256(parent);
                     break;
                 default:
                     break;
@@ -131,8 +145,33 @@ namespace pinguqueen
             }
     }
 
-    u32 RadixTrie::check_prefix(const Node* node, std::string_view key, std::string_view valid_key, u32 depth) noexcept
+    u32 RadixTrie::check_prefix(const Node* node, std::string_view key, u32 depth) noexcept
     {
+        const Node* curr = node;
+        while (!curr->is_leaf())
+        {
+            if (curr->_type == NodeType::Node4) {
+                curr = static_cast<const Node4*>(curr)->_children[0];
+            }
+            else if (curr->_type == NodeType::Node16) {
+                curr = static_cast<const Node16*>(curr)->_children[0];
+            }
+            else if (curr->_type == NodeType::Node48) {
+                const auto* n48 = static_cast<const Node48*>(curr);
+                for (auto* child : n48->_children) {
+                    if (child) { curr = child; break; }
+                }
+            }
+            else if (curr->_type == NodeType::Node256) {
+                const auto* n256 = static_cast<const Node256*>(curr);
+                for (auto* child : n256->_children) {
+                    if (child) { curr = child; break; }
+                }
+            }
+        }
+
+        std::string_view valid_key = static_cast<const LeafNode*>(curr)->_full_key;
+
         u32 p = 0;
         while (p < node->_prefix_skip_length &&
                (depth + p) < key.length() &&
@@ -140,8 +179,48 @@ namespace pinguqueen
         {
             p++;
         }
+
         return p;
     }
+
+
+    LeafNode* RadixTrie::find_leaf_node(std::string_view key) noexcept
+    {
+        Node* curr = _root;
+        u32 depth = 0;
+
+        while (curr != nullptr)
+        {
+            // Wenn wir ein Blatt erreichen, validieren wir den vollständigen Key
+            if (curr->is_leaf())
+            {
+                auto* leaf = static_cast<LeafNode*>(curr);
+                if (leaf->_full_key == key) {
+                    return leaf;
+                }
+                return nullptr; // Mismatch am Ende des Pfads
+            }
+
+            if (curr->_prefix_skip_length > 0){
+                u32 p = check_prefix(curr, key, depth);
+                if (p != curr->_prefix_skip_length) {
+                    return nullptr;
+                }
+                depth += curr->_prefix_skip_length;
+            }
+
+            if (depth >= key.length()){
+                return nullptr;
+            }
+
+            curr = curr->find_child(static_cast<u8>(key[depth]));
+            depth++;
+        }
+
+        return nullptr;
+    }
+
+
 
     void RadixTrie::insert(Node*& node, std::string_view key, FileInfo* information, u32 depth)
     {
@@ -151,21 +230,18 @@ namespace pinguqueen
         leaf->_full_key = std::string(key);
         leaf->_metadata = information;
 
-        if (node == nullptr)
-        {
+        if (node == nullptr){
             replace(node, leaf);
             return;
         }
 
-        if (node->is_leaf())
-        {
+        if (node->is_leaf()){
             Node* newNode = new Node4();
             newNode->_type = NodeType::Node4;
 
             std::string_view key2 = load_key(node);
             u32 i = depth;
-            while (i < key.length() && i < key2.length() && key[i] == key2[i])
-            {
+            while (i < key.length() && i < key2.length() && key[i] == key2[i]){
                 i++;
             }
 
@@ -178,11 +254,14 @@ namespace pinguqueen
             return;
         }
 
-        u32 p= check_prefix(node, key, key, depth);
+        u32 p = check_prefix(node, key, depth);
         if (p != node->_prefix_skip_length) {
             Node* newNode = new Node4;
+
+            std::string_view valid_key = load_key(node);
+
             add_child(newNode, key[depth+p], leaf);
-            add_child(newNode, node->_prefix_skip_length, node);
+            add_child(newNode, valid_key[depth + p], node);
             newNode->_prefix_skip_length = p;
             node->_prefix_skip_length -= (p + 1);
             replace(node, newNode);
@@ -190,15 +269,23 @@ namespace pinguqueen
 
         }
 
+        depth = depth + node->_prefix_skip_length;
         Node* next = node->find_child(key[depth]);
-        if (next != nullptr)
-        {
+        if (next != nullptr) {
             insert(next, key, information, depth + 1);
         }
-        else
-        {
+        else {
             add_child(node, key[depth], leaf);
         }
 
+    }
+    pinguqueen::FileInfo* pinguqueen::RadixTrie::search(std::string_view key) noexcept
+    {
+
+        LeafNode* leaf = find_leaf_node(key);
+        if (leaf != nullptr) {
+            return leaf->_metadata;
+        }
+        return nullptr;
     }
 }

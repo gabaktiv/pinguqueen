@@ -10,7 +10,8 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Deaktiviert Compiler-spezifische Erweiterungen f
 
 # 2. Das Executable erstellen
 add_executable(pinguqueen src/main.cpp
-        src/radix-trie/radix-trie.cpp)
+        src/radix-trie/radix-trie.cpp
+        src/radix-trie/node.cpp)
 
 # 3. Extrem strenge Compiler-Flags NUR für Clang (und GCC) definieren
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")

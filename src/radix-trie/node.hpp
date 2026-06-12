@@ -33,7 +33,7 @@ namespace pinguqueen {
 
         [[nodiscard]] bool is_leaf() const noexcept { return _isleaf; }
         [[nodiscard]] virtual bool is_full() const noexcept = 0;
-        virtual Node* find_child(u8 key_byte) noexcept = 0;
+        [[nodiscard]] virtual Node* find_child(u8 key_byte) noexcept = 0;
 
     };
 
@@ -44,7 +44,7 @@ namespace pinguqueen {
         FileInfo* _metadata = nullptr;
 
         [[nodiscard]] bool is_full() const noexcept override { return true; }
-        Node* find_child(u8) noexcept override { return nullptr; }
+        [[nodiscard]]Node* find_child(u8) noexcept override { return nullptr; }
 
     };
 
@@ -60,8 +60,10 @@ namespace pinguqueen {
         Node4& operator=(const Node4&) = delete;
 
         [[nodiscard]] bool is_full() const noexcept override { return _child_count == 4; }
-        Node* find_child(u8 key_byte) noexcept override;
+
+        [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW OF NODE IF FULL
+
     };
 
     class Node16 : public Node
@@ -76,8 +78,10 @@ namespace pinguqueen {
         Node16& operator=(const Node16&) = delete;
 
         [[nodiscard]] bool is_full() const noexcept override { return _child_count == 16; }
-        Node* find_child(u8 key_byte) noexcept override;
+
+        [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW IF FULL
+
     };
 
     class Node48 : public Node
@@ -92,8 +96,10 @@ namespace pinguqueen {
         Node48(const Node48&) = delete;
         Node48& operator=(const Node48&) = delete;
 
-        [[nodiscard]] bool is_full() const noexcept override;
-        Node* find_child(u8 key_byte) noexcept override;
+        [[nodiscard]] bool is_full() const noexcept override { return _child_count == 48; }
+
+        [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
+
         void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW IF FULL
     };
 
@@ -108,7 +114,9 @@ namespace pinguqueen {
         Node256& operator=(const Node256&) = delete;
 
         [[nodiscard]] bool is_full() const noexcept override { return _child_count == 256; }
-        Node* find_child(u8 key_byte) noexcept override;
+
+        [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
+
         void insert_pure(u8 key, Node* child) noexcept; //!DANGEROUS, NO GROW OF NODE IF FULL
     };
 
