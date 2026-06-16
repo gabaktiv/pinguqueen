@@ -34,6 +34,8 @@ namespace pinguqueen
     }
 
     void RadixTrie::grow_4_to_16(Node*& parent_slot) noexcept {
+        assert(parent_slot->_type != NodeType::Node4);
+
         auto* old_node = static_cast<Node4*>(parent_slot);
         auto* new_node = new Node16();
 
@@ -57,6 +59,8 @@ namespace pinguqueen
 
     void RadixTrie::grow_16_to_48(Node*& parent_slot) noexcept
     {
+        assert(parent_slot->_type != NodeType::Node16);
+
         auto* old_node = static_cast<Node16*>(parent_slot);
         auto* new_node = new Node48();
 
@@ -81,6 +85,8 @@ namespace pinguqueen
 
     void RadixTrie::grow_48_to_256(Node*& parent_slot) noexcept
     {
+        assert(parent_slot->_type != NodeType::Node48);
+
         auto* old_node = static_cast<Node48*>(parent_slot);
         auto* new_node = new Node256();
         new_node->_type = NodeType::Node256;
@@ -99,6 +105,18 @@ namespace pinguqueen
 
         parent_slot = new_node;
     }
+
+    void shrink_256_to_48(Node*& parent_slot) noexcept
+    {
+        assert(parent_slot->_type != NodeType::Node256);
+
+        auto* old_node = static_cast<Node256*>(parent_slot);
+        auto* new_node = new Node48();
+
+
+
+    }
+
 
     void RadixTrie::add_child(Node*& parent, u8 key, Node* child) noexcept
     {

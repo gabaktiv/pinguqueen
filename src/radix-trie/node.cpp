@@ -96,6 +96,11 @@ namespace pinguqueen {
         _child_count++;
     }
 
+    void Node4::remove_pure(u8 key, Node* child) noexcept
+    {
+        
+    }
+
     //!DANGEROUS, NO GROW IF FULL
     void Node16::insert_pure(u8 key, Node* child) noexcept
     {
