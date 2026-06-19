@@ -19,7 +19,6 @@ namespace pinguqueen
         static void grow_4_to_16(Node*& parent_slot) noexcept;
         static void grow_16_to_48(Node*& parent_slot) noexcept;
         static void grow_48_to_256(Node*& parent_slot) noexcept;
-
         static void shrink_256_to_48(Node*& parent_slot) noexcept;
         static void shrink_48_to_16(Node*& parent_slot) noexcept;
         static void shrink_16_to_4(Node*& parent_slot) noexcept;

@@ -52,6 +52,9 @@ namespace pinguqueen {
     {
     public:
 
+        static constexpr u8 GROW_CHILD_COUNT = 5;
+        static constexpr u8 NO_CHILD = 0;
+
         u8 _keys[4]{};
         Node* _children[4]{};
 
@@ -66,7 +69,8 @@ namespace pinguqueen {
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
-        void remove_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO SHRINKING OF NODE TOO EMPTY
+        //!DANGEROUS, CRASHES IF NO CHILD AVAILABLE. IT ONLY REMOVES CORRESPONDING POINTER / NO DESTRUKTOR CALLED
+        void remove_pure(u8 key) noexcept;
     };
 
     class Node16 : public Node
@@ -74,7 +78,9 @@ namespace pinguqueen {
     public:
         u8 _keys[16]{};
         Node* _children[16]{};
-        static constexpr u8 SHRINKING_VALUE = 3;
+        static constexpr u8 SHRINKING_CHILD_COUNT = 3;
+        static constexpr u8 GROW_CHILD_COUNT = 17;
+
 
         Node16() = default;
         ~Node16() override;
@@ -87,7 +93,8 @@ namespace pinguqueen {
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
-        void remove_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO SHRINKING OF NODE TOO EMPTY
+        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVING OF POINTER / NO DELETION
+        void remove_pure(u8 key) noexcept;
     };
 
     class Node48 : public Node
@@ -96,8 +103,8 @@ namespace pinguqueen {
         u8 _keys[256]{};
         Node* _children[48]{};
         static constexpr u8 NOTHING = 48;
-        static constexpr u8 SHRINKING_VALUE = 15;
-
+        static constexpr u8 SHRINKING_CHILD_COUNT = 15;
+        static constexpr u8 GROW_CHILD_COUNT = 49;
 
         Node48() = default;
         ~Node48() override;
@@ -110,7 +117,8 @@ namespace pinguqueen {
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
 
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
-        void remove_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO SHRINKING OF NODE TOO EMPTY
+        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVING OF POINTER / NO DELETION
+        void remove_pure(u8 key) noexcept;
     };
 
     
@@ -119,7 +127,8 @@ namespace pinguqueen {
     {
     public:
         Node* _children[256]{};
-        static constexpr u8 SHRINKING_VALUE = 47;
+        static constexpr u8 SHRINKING_CHILD_COUNT = 47;
+
 
 
         Node256() = default;
@@ -134,7 +143,7 @@ namespace pinguqueen {
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
 
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
-        void remove_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO SHRINKING OF NODE TOO EMPTY
+        void remove_pure(u8 key) noexcept;  //!DANGEROUS, NO SHRINKING OF NODE IF TOO EMPTY
     };
 
 }

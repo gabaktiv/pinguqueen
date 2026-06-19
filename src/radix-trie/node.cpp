@@ -77,15 +77,13 @@ namespace pinguqueen {
         return _children[key_byte];
     }
 
-
-
     //!DANGEROUS, NO GROW IF FULL
     void Node4::insert_pure(u8 key, Node* child) noexcept
     {
         assert(_child_count < 4);
         u8 insert_pos = 0;
         while (insert_pos < _child_count && _keys[insert_pos] < key) {
-            insert_pos++;
+            ++insert_pos;
         }
         for (u8 i = _child_count; i > insert_pos; --i) {
             _keys[i] = _keys[i - 1];
@@ -93,12 +91,28 @@ namespace pinguqueen {
         }
         _keys[insert_pos] = key;
         _children[insert_pos] = child;
-        _child_count++;
+        ++_child_count;
     }
 
-    void Node4::remove_pure(u8 key, Node* child) noexcept
+    //!DANGEROUS, CRASHES IF NO CHILD AVAILABLE. IT ONLY REMOVES CORRESPONDING POINTER / NO DESTRUKTOR CALLED
+    void Node4::remove_pure(u8 key) noexcept
     {
-        
+        assert(_child_count == NO_CHILD);
+
+        u8 remove_pos = 0;
+        while (remove_pos < _child_count && _keys[remove_pos] < key) {
+            ++remove_pos;
+        }
+        if (remove_pos < _child_count && _keys[remove_pos] == key) {
+
+            for (u16 i = remove_pos; i < _child_count - 1; ++i) {
+                _keys[i] = _keys[i + 1];
+                _children[i] = _children[i + 1];
+            }
+            _keys[_child_count - 1] = 0;
+            _children[_child_count - 1] = nullptr;
+            --_child_count;
+        }
     }
 
     //!DANGEROUS, NO GROW IF FULL
@@ -107,7 +121,7 @@ namespace pinguqueen {
         assert(_child_count < 16);
         u8 insert_pos = 0;
         while (insert_pos < _child_count && _keys[insert_pos] < key) {
-            insert_pos++;
+            ++insert_pos;
         }
         for (u8 i = _child_count; i > insert_pos; --i) {
             _keys[i] = _keys[i - 1];
@@ -115,8 +129,32 @@ namespace pinguqueen {
         }
         _keys[insert_pos] = key;
         _children[insert_pos] = child;
-        _child_count++;
+        ++_child_count;
     }
+
+
+    //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVING OF POINTER / NO DELETION
+    void Node16::remove_pure(u8 key) noexcept
+    {
+        assert(_child_count <= SHRINKING_CHILD_COUNT);
+
+        u8 remove_pos = 0;
+        while (remove_pos < _child_count && _keys[remove_pos] < key) {
+            ++remove_pos;
+        }
+        if (remove_pos < _child_count && _keys[remove_pos] == key) {
+
+            for (u16 i = remove_pos; i < _child_count - 1; ++i) {
+                _keys[i] = _keys[i + 1];
+                _children[i] = _children[i + 1];
+            }
+            _keys[_child_count - 1] = 0;
+            _children[_child_count - 1] = nullptr;
+            --_child_count;
+        }
+    }
+
+
 
     //!DANGEROUS, NO GROW IF FULL
     void Node48::insert_pure(u8 key, Node* child) noexcept
@@ -131,15 +169,39 @@ namespace pinguqueen {
         }
         _children[free_idx] = child;
         _keys[key] = free_idx;
-        _child_count++;
+        ++_child_count;
     }
+
+    //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVING OF POINTER / NO DELETION
+    void Node48::remove_pure(u8 key) noexcept
+    {
+        assert(_child_count < SHRINKING_CHILD_COUNT);
+        u8 remove_pos = 0;
+        u8 child_pos = 0;
+        for (u16 i = 0; i < _child_count && _keys[i] != key; ++i) {
+            ++remove_pos;
+        }
+
+
+
+    }
+
 
     //!DANGEROUS, NO GROW IF FULL
     void Node256::insert_pure(u8 key, Node* child) noexcept
     {
         assert(_children[key] == nullptr);
         _children[key] = child;
-        _child_count++;
+        ++_child_count;
     }
+
+    //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVING OF POINTER / NO DELETION
+    void Node256::remove_pure(u8 key) noexcept
+    {
+        assert(_child_count == SHRINKING_CHILD_COUNT);
+        _children[key] = nullptr;
+        _child_count--;
+    }
+
 
 }
