@@ -230,7 +230,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         }
     }
 
-    void RadixTrie::remove_child(Node*& parent, u8 key, Node* child) noexcept
+    void RadixTrie::remove_child(Node*& parent, u8 key) noexcept
 {
     switch (parent->_type)
     {
@@ -392,8 +392,8 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
             newNode->_prefix_skip_length = i - depth;
             depth = depth + newNode->_prefix_skip_length;
 
-            add_child(newNode, key[depth], leaf);
-            add_child(newNode, key2[depth], node);
+            add_child(newNode, static_cast<u8>(key[depth]), leaf);
+            add_child(newNode, static_cast<u8>(key2[depth]), node);
             replace(node, newNode);
             return;
         }
@@ -404,8 +404,8 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
 
             std::string_view valid_key = load_key(node);
 
-            add_child(newNode, key[depth+p], leaf);
-            add_child(newNode, valid_key[depth + p], node);
+            add_child(newNode, static_cast<u8>(key[depth+p]), leaf);
+            add_child(newNode, static_cast<u8>(valid_key[depth + p]), node);
             newNode->_prefix_skip_length = p;
             node->_prefix_skip_length -= (p + 1);
             replace(node, newNode);
@@ -414,12 +414,12 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         }
 
         depth = depth + node->_prefix_skip_length;
-        Node* next = node->find_child(key[depth]);
+        Node* next = node->find_child(static_cast<u8>(key[depth]));
         if (next != nullptr) {
             insert_node(next, key, information, depth + 1);
         }
         else {
-            add_child(node, key[depth], leaf);
+            add_child(node, static_cast<u8>(key[depth]), leaf);
         }
 
     }
@@ -449,7 +449,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         if (next != nullptr) {
             delete_node(next, key, depth + 1);
             if (next == nullptr) {
-                remove_child(node, key_byte, next);
+                remove_child(node, key_byte);
             }
         }
     }

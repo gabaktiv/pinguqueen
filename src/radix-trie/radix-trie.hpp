@@ -24,7 +24,7 @@ namespace pinguqueen
         static void shrink_16_to_4(Node*& parent_slot) noexcept;
 
         static void add_child(Node*& parent, u8 key, Node* child) noexcept;
-        static void remove_child(Node*& parent, u8 key, Node* child) noexcept;
+        static void remove_child(Node*& parent, u8 key) noexcept;
         [[nodiscard]] static u32 check_prefix(const Node* node, std::string_view key, u32 depth) noexcept;
         [[nodiscard]] LeafNode* find_leaf_node(std::string_view key) noexcept;
 

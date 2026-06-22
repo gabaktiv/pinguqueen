@@ -1,227 +1,433 @@
-#include <gtest/gtest.h>
-#include "../src/radix-trie/radix-trie.hpp"
-#include "../src/radix-trie/file-info.hpp"
+#include "support/test-suite.hpp"
+
+#include "radix-trie/file-info.hpp"
+#include "radix-trie/radix-trie.hpp"
+
+#include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
-using namespace pinguqueen;
+namespace {
 
-class RadixTrieTest : public ::testing::Test {
-protected:
-    RadixTrie trie;
-    
-    // Hilfskonstrukte für Metadaten
-    std::vector<FileInfo*> allocated_metadata;
+    using namespace pinguqueen;
 
-    FileInfo* create_metadata(const std::string& name, uint32_t size) {
-        auto* info = new FileInfo();
-        info->file_name = name;
-        info->file_size_bytes = size;
-        allocated_metadata.push_back(info);
-        return info;
+    struct TrieFixture {
+        Node* root = nullptr;
+        std::vector<std::unique_ptr<FileInfo>> metadata;
+
+        ~TrieFixture()
+        {
+            delete root;
+        }
+
+        FileInfo* make_file(std::string name, u32 size)
+        {
+            auto info = std::make_unique<FileInfo>();
+            info->file_name = std::move(name);
+            info->file_size_bytes = size;
+
+            FileInfo* raw = info.get();
+            metadata.push_back(std::move(info));
+            return raw;
+        }
+
+        FileInfo* insert(std::string_view key, u32 size = 1)
+        {
+            FileInfo* info = make_file(std::string(key), size);
+            RadixTrie::insert_node(root, key, info, 0);
+            return info;
+        }
+
+        void erase(std::string_view key)
+        {
+            RadixTrie::delete_node(root, key, 0);
+        }
+    };
+
+    std::string key_with_suffix(unsigned char suffix)
+    {
+        std::string key = "p";
+        key.push_back(static_cast<char>(suffix));
+        return key;
     }
 
-    void TearDown() override {
-        // Aufräumen der FileInfo-Metadaten, da der Trie nur die Knoten besitzt, nicht das FileInfo
-        for (auto* info : allocated_metadata) {
-            delete info;
+    const LeafNode* as_leaf(const Node* node)
+    {
+        if (node == nullptr || !node->is_leaf()) {
+            return nullptr;
+        }
+        return static_cast<const LeafNode*>(node);
+    }
+
+    const LeafNode* find_leaf(Node* root, std::string_view key)
+    {
+        Node* current = root;
+        u32 depth = 0;
+
+        while (current != nullptr) {
+            if (const LeafNode* leaf = as_leaf(current)) {
+                return leaf->_full_key == key ? leaf : nullptr;
+            }
+
+            depth += current->_prefix_skip_length;
+            if (depth >= key.size()) {
+                return nullptr;
+            }
+
+            current = current->find_child(static_cast<u8>(key[depth]));
+            ++depth;
+        }
+
+        return nullptr;
+    }
+
+    void insert_suffix_range(TrieFixture& fixture, unsigned char first, unsigned char last)
+    {
+        for (unsigned char suffix = first; suffix <= last; ++suffix) {
+            fixture.insert(key_with_suffix(suffix), suffix);
         }
     }
-};
 
-// ============================================================================
-// 1. BASICS: Einfügen, Suchen, Mismatch
-// ============================================================================
-
-TEST_F(RadixTrieTest, EmptyTrieReturnsNull) {
-    EXPECT_EQ(trie.search("irgendein/pfad.txt"), nullptr);
-}
-
-TEST_F(RadixTrieTest, InsertAndSearchSingleElement) {
-    auto* meta = create_metadata("datei.txt", 1024);
-    
-    // Greift auf die statische oder reguläre Schnittstelle zu, je nachdem wie du dein Root verwaltest.
-    // Da insert_node statisch auf Node*& arbeitet, testen wir über die öffentliche Schnittstelle des Tries:
-    // Falls deine öffentliche Schnittstelle 'insert(key, info)' heißt, passe es hier kurz an.
-    // Laut deiner HPP nutzt du: 'static void insert_node(Node*& node, std::string_view key, FileInfo* information, u32 depth);'
-    // Wir nehmen an, du hast eine öffentliche Wrapper-Methode, analog zu search().
-    // Falls nicht, erstellen wir hier einen Test-Knoten.
-}
-
-// Da deine insert_node-Methode static ist und ein Node*& erwartet, testen wir die Core-Engine 
-// direkt an den Nodes über eine lokale Instanz, um die Invarianten perfekt zu triggern!
-
-class RadixTrieNodeCoreTest : public ::testing::Test {
-protected:
-    Node* root = nullptr;
-    std::vector<FileInfo*> allocated_metadata;
-
-    FileInfo* create_meta(const std::string& name, uint32_t size) {
-        auto* info = new FileInfo();
-        info->file_name = name;
-        info->file_size_bytes = size;
-        allocated_metadata.push_back(info);
-        return info;
-    }
-
-    void TearDown() override {
-        // Die Destruktor-Kaskade löscht alle inneren Knoten und Blätter
-        delete root;
-        for (auto* info : allocated_metadata) {
-            delete info;
+    Node* child_for_suffix(Node* root, unsigned char suffix)
+    {
+        if (root == nullptr) {
+            return nullptr;
         }
+        return root->find_child(suffix);
     }
-};
 
-TEST_F(RadixTrieNodeCoreTest, InsertAndSearchBasic) {
-    auto* meta = create_meta("test.txt", 500);
-    RadixTrie::insert_node(root, "pinguin.png", meta, 0);
-
-    // Nutzen wir das reguläre öffentliche Such-Uhrwerk (über die Instanz)
-    // Um die Instanz zu füttern, müsste root in der Instanz liegen. 
-    // Wenn RadixTrie ein Singleton werden soll oder _root privat ist, testen wir direkt über find_leaf_node (falls zugänglich)
-    // oder nutzen die öffentliche Instanz. Für diesen Test bauen wir einen sauberen Wrapper:
 }
 
-// Vergewissern wir uns der exakten Funktionsweise anhand deines Codes:
-TEST_F(RadixTrieNodeCoreTest, PathCompressionAndLeafSplit) {
-    auto* meta1 = create_meta("bild1.png", 100);
-    auto* meta2 = create_meta("bild2.png", 200);
+int main(int argc, char** argv)
+{
+    const std::string_view test_filter = argc > 1 ? std::string_view(argv[1]) : std::string_view();
+    pinguqueen::tests::TestSuite suite("RadixTrie", test_filter);
 
-    // Gemeinsamer Präfix: "ruderboot" -> Mutation bei '1' vs '2'
-    RadixTrie::insert_node(root, "ruderboot1", meta1, 0);
-    RadixTrie::insert_node(root, "ruderboot2", meta2, 0);
+    suite.run("insert_empty_creates_leaf", [&] {
+        TrieFixture fixture;
 
-    ASSERT_NE(root, nullptr);
-    EXPECT_EQ(root->_type, NodeType::Node4);
-    EXPECT_EQ(root->_child_count, 2);
-    // Präfix-Länge von "ruderboot" ist 9
-    EXPECT_EQ(root->_prefix_skip_length, 9);
-}
+        FileInfo* metadata = fixture.insert("alpha.txt", 42);
 
-// ============================================================================
-// 2. ADAPTIVES WACHSTUM (Grow-Kaskade 4 -> 16 -> 48 -> 256)
-// ============================================================================
+        const LeafNode* leaf = as_leaf(fixture.root);
+        PQ_EXPECT(leaf != nullptr);
+        PQ_EXPECT_EQ(leaf->_full_key, std::string("alpha.txt"));
+        PQ_EXPECT_EQ(leaf->_metadata, metadata);
+    });
 
-TEST_F(RadixTrieNodeCoreTest, SequentialGrowToNode16) {
-    // Erzeugt einen Node4 und füllt ihn bis zur Grenze
-    for (int i = 0; i < 4; ++i) {
-        std::string key = "key" + std::to_string(i); // Schlüssel mutieren an Position 3 ('0','1','2','3')
-        RadixTrie::insert_node(root, key, create_meta(key, 10), 0);
-    }
-    ASSERT_EQ(root->_type, NodeType::Node4);
-    EXPECT_EQ(root->_child_count, 4);
+    suite.run("split_shared_prefix_type_is_node4", [&] {
+        TrieFixture fixture;
 
-    // Das 5. Element MUSS grow_4_to_16 auslösen
-    RadixTrie::insert_node(root, "key4", create_meta("key4", 10), 0);
-    EXPECT_EQ(root->_type, NodeType::Node16);
-    EXPECT_EQ(root->_child_count, 5);
-}
+        fixture.insert("folder/a.txt", 10);
+        fixture.insert("folder/b.txt", 20);
 
-TEST_F(RadixTrieNodeCoreTest, SequentialGrowToNode48) {
-    // Wir füllen den Knoten bis auf 16 Elemente
-    for (int i = 0; i < 16; ++i) {
-        // Generiert eindeutige Bytes an Position 0 durch Typ-Cast
-        std::string key = " ";
-        key[0] = static_cast<char>(i + 65); // 'A', 'B', 'C'...
-        RadixTrie::insert_node(root, key, create_meta(key, 10), 0);
-    }
-    ASSERT_EQ(root->_type, NodeType::Node16);
-    EXPECT_EQ(root->_child_count, 16);
+        PQ_EXPECT(fixture.root != nullptr);
+        PQ_EXPECT_EQ(fixture.root->_type, NodeType::Node4);
+    });
 
-    // Das 17. Element MUSS grow_16_to_48 auslösen
-    std::string trigger_key = " ";
-    trigger_key[0] = static_cast<char>(16 + 65);
-    RadixTrie::insert_node(root, trigger_key, create_meta(trigger_key, 10), 0);
+    suite.run("split_shared_prefix_skip_length", [&] {
+        TrieFixture fixture;
 
-    EXPECT_EQ(root->_type, NodeType::Node48);
-    EXPECT_EQ(root->_child_count, 17);
-}
+        fixture.insert("folder/a.txt", 10);
+        fixture.insert("folder/b.txt", 20);
 
-TEST_F(RadixTrieNodeCoreTest, SequentialGrowToNode256) {
-    // Wir treiben den Node48 an seine absolute Grenze (48 Kinder)
-    for (int i = 0; i < 48; ++i) {
-        std::string key = " ";
-        key[0] = static_cast<char>(i + 1); // Bytes 1 bis 48
-        RadixTrie::insert_node(root, key, create_meta(key, 10), 0);
-    }
-    ASSERT_EQ(root->_type, NodeType::Node48);
-    EXPECT_EQ(root->_child_count, 48);
+        PQ_EXPECT(fixture.root != nullptr);
+        PQ_EXPECT_EQ(fixture.root->_prefix_skip_length, 7U);
+    });
 
-    // Das 49. Element MUSS grow_48_to_256 auslösen
-    std::string trigger_key = " ";
-    trigger_key[0] = static_cast<char>(49);
-    RadixTrie::insert_node(root, trigger_key, create_meta(trigger_key, 10), 0);
+    suite.run("split_shared_prefix_child_count", [&] {
+        TrieFixture fixture;
 
-    EXPECT_EQ(root->_type, NodeType::Node256);
-    EXPECT_EQ(root->_child_count, 49);
-}
+        fixture.insert("folder/a.txt", 10);
+        fixture.insert("folder/b.txt", 20);
 
-// ============================================================================
-// 3. ADAPTIVES SCHRUMPFEN (Shrink-Kaskade 256 -> 48 -> 16 -> 4 -> Collapse)
-// ============================================================================
+        PQ_EXPECT(fixture.root != nullptr);
+        PQ_EXPECT_EQ(fixture.root->_child_count, 2U);
+    });
 
-TEST_F(RadixTrieNodeCoreTest, KaskadierendesShrinkenUndCollapse) {
-    // 1. Wir bauen gezielt einen Node256 mit exakt 49 Elementen auf
-    for (int i = 1; i <= 49; ++i) {
-        std::string key = " ";
-        key[0] = static_cast<char>(i);
-        RadixTrie::insert_node(root, key, create_meta(key, 10), 0);
-    }
-    ASSERT_EQ(root->_type, NodeType::Node256);
-    EXPECT_EQ(root->_child_count, 49);
+    suite.run("split_shared_prefix_left_leaf_reachable", [&] {
+        TrieFixture fixture;
 
-    // 2. Wir löschen ein Element -> Count fällt auf 48.
-    // Gemäß deinen Asserts (Count > 47) ist das vollkommen legal.
-    // Nach dem Löschen fällt der Count unter/gleich 47 -> shrink_256_to_48 zündet!
-    std::string delete_key = " ";
-    delete_key[0] = static_cast<char>(49);
-    RadixTrie::delete_node(root, delete_key, 0);
-    
-    EXPECT_EQ(root->_type, NodeType::Node48);
-    EXPECT_EQ(root->_child_count, 48);
+        FileInfo* left = fixture.insert("folder/a.txt", 10);
+        fixture.insert("folder/b.txt", 20);
+        const LeafNode* leaf = find_leaf(fixture.root, "folder/a.txt");
 
-    // 3. Wir evakuieren den Node48 künstlich bis zur Schrumpfgrenze von 15
-    // Wir löschen von Index 48 runter bis inklusive Index 17 (Es verbleiben 16 Kinder)
-    for (int i = 48; i > 16; --i) {
-        delete_key[0] = static_cast<char>(i);
-        RadixTrie::delete_node(root, delete_key, 0);
-    }
-    ASSERT_EQ(root->_type, NodeType::Node48);
-    EXPECT_EQ(root->_child_count, 16);
+        PQ_EXPECT(leaf != nullptr);
+        if (leaf != nullptr) {
+            PQ_EXPECT_EQ(leaf->_metadata, left);
+        }
+    });
 
-    // Dieses Löschen drückt den Count auf 15 -> shrink_48_to_16 zündet!
-    delete_key[0] = static_cast<char>(16);
-    RadixTrie::delete_node(root, delete_key, 0);
-    EXPECT_EQ(root->_type, NodeType::Node16);
-    EXPECT_EQ(root->_child_count, 15);
+    suite.run("split_shared_prefix_right_leaf_reachable", [&] {
+        TrieFixture fixture;
 
-    // 4. Wir evakuieren den Node16 bis auf 4 Kinder
-    for (int i = 15; i > 4; --i) {
-        delete_key[0] = static_cast<char>(i);
-        RadixTrie::delete_node(root, delete_key, 0);
-    }
-    ASSERT_EQ(root->_type, NodeType::Node16);
-    EXPECT_EQ(root->_child_count, 4);
+        fixture.insert("folder/a.txt", 10);
+        FileInfo* right = fixture.insert("folder/b.txt", 20);
+        const LeafNode* leaf = find_leaf(fixture.root, "folder/b.txt");
 
-    // Dieses Löschen drückt den Count auf 3 -> shrink_16_to_4 zündet!
-    delete_key[0] = static_cast<char>(4);
-    RadixTrie::delete_node(root, delete_key, 0);
-    EXPECT_EQ(root->_type, NodeType::Node4);
-    EXPECT_EQ(root->_child_count, 3);
+        PQ_EXPECT(leaf != nullptr);
+        if (leaf != nullptr) {
+            PQ_EXPECT_EQ(leaf->_metadata, right);
+        }
+    });
 
-    // 5. Wir testen den totalen Pfad-Kollaps (Collapse)
-    // Wir löschen das vorletzte Element, sodass nur noch 1 Kind übrig bleibt
-    delete_key[0] = static_cast<char>(3);
-    RadixTrie::delete_node(root, delete_key, 0);
-    ASSERT_EQ(root->_type, NodeType::Node4);
-    EXPECT_EQ(root->_child_count, 2);
+    suite.run("split_shared_prefix_missing_leaf_not_found", [&] {
+        TrieFixture fixture;
 
-    // Letzter finaler Löschschritt: Node4 bricht komplett in sich zusammen.
-    // Das verbleibende Kind (Index 1) wird direkt nach oben gereicht und root wird selbst zum Leaf!
-    delete_key[0] = static_cast<char>(2);
-    RadixTrie::delete_node(root, delete_key, 0);
+        fixture.insert("folder/a.txt", 10);
+        fixture.insert("folder/b.txt", 20);
 
-    ASSERT_NE(root, nullptr);
-    EXPECT_TRUE(root->is_leaf()); // 🏆 Erfolg: Der innere Weichenknoten wurde restlos wegrationalisiert!
+        PQ_EXPECT(find_leaf(fixture.root, "folder/c.txt") == nullptr);
+    });
+
+    suite.run("node4_three_children_keeps_first_leaf", [&] {
+        TrieFixture fixture;
+
+        FileInfo* a = fixture.insert("pkg/a.hpp", 11);
+        fixture.insert("pkg/b.hpp", 12);
+        fixture.insert("pkg/c.hpp", 13);
+        const LeafNode* leaf = find_leaf(fixture.root, "pkg/a.hpp");
+
+        PQ_EXPECT(leaf != nullptr);
+        if (leaf != nullptr) {
+            PQ_EXPECT_EQ(leaf->_metadata, a);
+        }
+    });
+
+    suite.run("grow_node4_to_node16_type", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 5);
+
+        PQ_EXPECT_EQ(fixture.root->_type, NodeType::Node16);
+    });
+
+    suite.run("grow_node4_to_node16_child_count", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 5);
+
+        PQ_EXPECT_EQ(fixture.root->_child_count, 5U);
+    });
+
+    suite.run("grow_node4_to_node16_keeps_edge_children", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 5);
+
+        PQ_EXPECT(find_leaf(fixture.root, key_with_suffix(1)) != nullptr);
+        PQ_EXPECT(find_leaf(fixture.root, key_with_suffix(5)) != nullptr);
+    });
+
+    suite.run("grow_node16_to_node48_type", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 17);
+
+        PQ_EXPECT_EQ(fixture.root->_type, NodeType::Node48);
+    });
+
+    suite.run("grow_node16_to_node48_child_count", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 17);
+
+        PQ_EXPECT_EQ(fixture.root->_child_count, 17U);
+    });
+
+    suite.run("grow_node16_to_node48_keeps_edge_children", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 17);
+
+        PQ_EXPECT(find_leaf(fixture.root, key_with_suffix(1)) != nullptr);
+        PQ_EXPECT(find_leaf(fixture.root, key_with_suffix(17)) != nullptr);
+    });
+
+    suite.run("node48_before_grow_has_expected_prefix", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 48);
+
+        PQ_EXPECT_EQ(fixture.root->_type, NodeType::Node48);
+        PQ_EXPECT_EQ(fixture.root->_prefix_skip_length, 1U);
+    });
+
+    suite.run("node48_before_grow_has_expected_child_count", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 48);
+
+        PQ_EXPECT_EQ(fixture.root->_child_count, 48U);
+    });
+
+    suite.run("node48_before_grow_edge_children_reachable", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 48);
+
+        PQ_EXPECT(find_leaf(fixture.root, key_with_suffix(1)) != nullptr);
+        PQ_EXPECT(find_leaf(fixture.root, key_with_suffix(48)) != nullptr);
+    });
+
+    suite.run("grow_node48_to_node256_type", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+
+        PQ_EXPECT_EQ(fixture.root->_type, NodeType::Node256);
+    });
+
+    suite.run("grow_node48_to_node256_child_count", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+
+        PQ_EXPECT_EQ(fixture.root->_child_count, 49U);
+    });
+
+    suite.run("grow_node48_to_node256_preserves_prefix_skip", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+
+        PQ_EXPECT_EQ(fixture.root->_prefix_skip_length, 1U);
+    });
+
+    suite.run("grow_node48_to_node256_maps_first_child_directly", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+
+        PQ_EXPECT(child_for_suffix(fixture.root, 1) != nullptr);
+    });
+
+    suite.run("grow_node48_to_node256_maps_last_child_directly", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+
+        PQ_EXPECT(child_for_suffix(fixture.root, 49) != nullptr);
+    });
+
+    suite.run("grow_node48_to_node256_first_leaf_reachable", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+
+        PQ_EXPECT(find_leaf(fixture.root, key_with_suffix(1)) != nullptr);
+    });
+
+    suite.run("grow_node48_to_node256_last_leaf_reachable", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+
+        PQ_EXPECT(find_leaf(fixture.root, key_with_suffix(49)) != nullptr);
+    });
+
+    suite.run("delete_node4_removes_target_leaf", [&] {
+        TrieFixture fixture;
+
+        fixture.insert("set/a", 1);
+        fixture.insert("set/b", 2);
+        fixture.insert("set/c", 3);
+
+        fixture.erase("set/b");
+
+        PQ_EXPECT(find_leaf(fixture.root, "set/b") == nullptr);
+    });
+
+    suite.run("delete_node4_keeps_sibling_leaves", [&] {
+        TrieFixture fixture;
+
+        fixture.insert("set/a", 1);
+        fixture.insert("set/b", 2);
+        fixture.insert("set/c", 3);
+
+        fixture.erase("set/b");
+
+        PQ_EXPECT(find_leaf(fixture.root, "set/a") != nullptr);
+        PQ_EXPECT(find_leaf(fixture.root, "set/c") != nullptr);
+    });
+
+    suite.run("shrink_node16_to_node4_type", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 5);
+        fixture.erase(key_with_suffix(5));
+        fixture.erase(key_with_suffix(4));
+
+        PQ_EXPECT_EQ(fixture.root->_type, NodeType::Node4);
+    });
+
+    suite.run("shrink_node16_to_node4_child_count", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 5);
+        fixture.erase(key_with_suffix(5));
+        fixture.erase(key_with_suffix(4));
+
+        PQ_EXPECT_EQ(fixture.root->_child_count, 3U);
+    });
+
+    suite.run("shrink_node48_to_node16_type", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 17);
+        fixture.erase(key_with_suffix(17));
+        fixture.erase(key_with_suffix(16));
+
+        PQ_EXPECT_EQ(fixture.root->_type, NodeType::Node16);
+    });
+
+    suite.run("shrink_node48_to_node16_child_count", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 17);
+        fixture.erase(key_with_suffix(17));
+        fixture.erase(key_with_suffix(16));
+
+        PQ_EXPECT_EQ(fixture.root->_child_count, 15U);
+    });
+
+    suite.run("delete_node256_single_child_reduces_count", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+        fixture.erase(key_with_suffix(49));
+
+        PQ_EXPECT_EQ(fixture.root->_child_count, 48U);
+    });
+
+    suite.run("delete_node256_single_child_removes_direct_child", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+        fixture.erase(key_with_suffix(49));
+
+        PQ_EXPECT(child_for_suffix(fixture.root, 49) == nullptr);
+    });
+
+    suite.run("shrink_node256_to_node48_type", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+        fixture.erase(key_with_suffix(49));
+        fixture.erase(key_with_suffix(48));
+
+        PQ_EXPECT_EQ(fixture.root->_type, NodeType::Node48);
+    });
+
+    suite.run("shrink_node256_to_node48_child_count", [&] {
+        TrieFixture fixture;
+
+        insert_suffix_range(fixture, 1, 49);
+        fixture.erase(key_with_suffix(49));
+        fixture.erase(key_with_suffix(48));
+
+        PQ_EXPECT_EQ(fixture.root->_child_count, 47U);
+    });
+
+    return suite.finish();
 }

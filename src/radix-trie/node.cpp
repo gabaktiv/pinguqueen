@@ -85,7 +85,7 @@ namespace pinguqueen {
         while (insert_pos < _child_count && _keys[insert_pos] < key) {
             ++insert_pos;
         }
-        for (u8 i = _child_count; i > insert_pos; --i) {
+        for (u16 i = _child_count; i > insert_pos; --i) {
             _keys[i] = _keys[i - 1];
             _children[i] = _children[i - 1];
         }
@@ -123,7 +123,7 @@ namespace pinguqueen {
         while (insert_pos < _child_count && _keys[insert_pos] < key) {
             ++insert_pos;
         }
-        for (u8 i = _child_count; i > insert_pos; --i) {
+        for (u16 i = _child_count; i > insert_pos; --i) {
             _keys[i] = _keys[i - 1];
             _children[i] = _children[i - 1];
         }

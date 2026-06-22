@@ -136,7 +136,7 @@ namespace pinguqueen {
     {
     public:
         Node* _children[256]{};
-        static constexpr u8 FULL = 256;
+        static constexpr u16 FULL = 256;
         static constexpr u8 SHRINKING_CHILD_COUNT = 47;
 
 
