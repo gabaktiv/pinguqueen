@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 #include  <cassert>
-
+#include <vector>
 
 namespace pinguqueen
 {

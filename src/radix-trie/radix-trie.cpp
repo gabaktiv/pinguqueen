@@ -91,6 +91,7 @@ namespace pinguqueen
         auto* new_node = new Node256();
         new_node->_type = NodeType::Node256;
         new_node->_child_count = old_node->_child_count;
+        new_node->_prefix_skip_length = old_node->_prefix_skip_length;
 
         for (u16 key_byte = 0; key_byte < 256; ++key_byte){
             u8 index = old_node->_keys[key_byte];
