@@ -103,3 +103,35 @@ set(RADIX_TRIE_TESTS
 foreach(test_name IN LISTS RADIX_TRIE_TESTS)
         add_test(NAME radix_trie.${test_name} COMMAND radix_trie_tests ${test_name})
 endforeach()
+
+# Benchmarks
+find_package(benchmark CONFIG QUIET)
+
+if (NOT benchmark_FOUND)
+        include(FetchContent)
+
+        set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+        set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+        set(BENCHMARK_ENABLE_WERROR OFF CACHE BOOL "" FORCE)
+
+        FetchContent_Declare(
+                google_benchmark
+                GIT_REPOSITORY https://github.com/google/benchmark.git
+                GIT_TAG v1.9.1
+        )
+
+        FetchContent_MakeAvailable(google_benchmark)
+endif()
+
+if (TARGET benchmark::benchmark_main)
+        add_executable(radix_trie_benchmarks
+                benchmarks/radix-trie-benchmark.cpp
+        )
+
+        target_link_libraries(radix_trie_benchmarks PRIVATE
+                trie_core
+                benchmark::benchmark_main
+        )
+else()
+        message(STATUS "Google Benchmark target not available; radix_trie_benchmarks target disabled")
+endif()
