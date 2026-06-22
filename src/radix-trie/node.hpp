@@ -33,6 +33,8 @@ namespace pinguqueen {
 
         [[nodiscard]] bool is_leaf() const noexcept { return _isleaf; }
         [[nodiscard]] virtual bool is_full() const noexcept = 0;
+        [[nodiscard]] virtual bool is_too_empty() const noexcept = 0;
+
         [[nodiscard]] virtual Node* find_child(u8 key_byte) noexcept = 0;
 
     };
@@ -43,7 +45,10 @@ namespace pinguqueen {
         std::string _full_key;
         FileInfo* _metadata = nullptr;
 
-        [[nodiscard]] bool is_full() const noexcept override { return true; }
+        //Blätter sollten keine Informationen über Anzahl der Kinder geben
+        [[nodiscard]] bool is_full() const noexcept override { assert(false); return false; }
+        [[nodiscard]] bool is_too_empty() const noexcept override{ assert(false); return false; }
+
         [[nodiscard]] Node* find_child(u8) noexcept override { return nullptr; }
 
     };
@@ -52,7 +57,7 @@ namespace pinguqueen {
     {
     public:
 
-        static constexpr u8 GROW_CHILD_COUNT = 5;
+        static constexpr u8 GROW_CHILD_COUNT = 4;
         static constexpr u8 NO_CHILD = 0;
 
         u8 _keys[4]{};
@@ -65,7 +70,8 @@ namespace pinguqueen {
         Node4(Node4&&) = delete;
         Node4& operator=(Node4&&) = delete;
 
-        [[nodiscard]] bool is_full() const noexcept override { return _child_count == 4; }
+        [[nodiscard]] bool is_full() const noexcept override { return _child_count == GROW_CHILD_COUNT; }
+        [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == NO_CHILD; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
@@ -79,7 +85,7 @@ namespace pinguqueen {
         u8 _keys[16]{};
         Node* _children[16]{};
         static constexpr u8 SHRINKING_CHILD_COUNT = 3;
-        static constexpr u8 GROW_CHILD_COUNT = 17;
+        static constexpr u8 GROW_CHILD_COUNT = 16;
 
 
         Node16() = default;
@@ -89,7 +95,8 @@ namespace pinguqueen {
         Node16(Node16&&) = delete;
         Node16& operator=(Node16&&) = delete;
 
-        [[nodiscard]] bool is_full() const noexcept override { return _child_count == 16; }
+        [[nodiscard]] bool is_full() const noexcept override { return _child_count == GROW_CHILD_COUNT; }
+        [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
@@ -104,7 +111,7 @@ namespace pinguqueen {
         Node* _children[48]{};
         static constexpr u8 NOTHING = 48;
         static constexpr u8 SHRINKING_CHILD_COUNT = 15;
-        static constexpr u8 GROW_CHILD_COUNT = 49;
+        static constexpr u8 GROW_CHILD_COUNT = 48;
 
         Node48() = default;
         ~Node48() override;
@@ -114,6 +121,8 @@ namespace pinguqueen {
         Node48& operator=(Node48&&) = delete;
 
         [[nodiscard]] bool is_full() const noexcept override { return _child_count == 48; }
+        [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
+
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
 
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
@@ -127,6 +136,7 @@ namespace pinguqueen {
     {
     public:
         Node* _children[256]{};
+        static constexpr u8 FULL = 256;
         static constexpr u8 SHRINKING_CHILD_COUNT = 47;
 
 
@@ -138,7 +148,8 @@ namespace pinguqueen {
         Node256(Node256&&) = delete;
         Node256& operator=(Node256&&) = delete;
 
-        [[nodiscard]] bool is_full() const noexcept override { return _child_count == 256; }
+        [[nodiscard]] bool is_full() const noexcept override { return _child_count == FULL; }
+        [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
 

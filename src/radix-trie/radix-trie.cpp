@@ -34,7 +34,7 @@ namespace pinguqueen
     }
 
     void RadixTrie::grow_4_to_16(Node*& parent_slot) noexcept {
-        assert(parent_slot->_type != NodeType::Node4);
+        assert(parent_slot->_type == NodeType::Node4);
 
         auto* old_node = static_cast<Node4*>(parent_slot);
         auto* new_node = new Node16();
@@ -59,7 +59,7 @@ namespace pinguqueen
 
     void RadixTrie::grow_16_to_48(Node*& parent_slot) noexcept
     {
-        assert(parent_slot->_type != NodeType::Node16);
+        assert(parent_slot->_type == NodeType::Node16);
 
         auto* old_node = static_cast<Node16*>(parent_slot);
         auto* new_node = new Node48();
@@ -85,7 +85,7 @@ namespace pinguqueen
 
     void RadixTrie::grow_48_to_256(Node*& parent_slot) noexcept
     {
-        assert(parent_slot->_type != NodeType::Node48);
+        assert(parent_slot->_type == NodeType::Node48);
 
         auto* old_node = static_cast<Node48*>(parent_slot);
         auto* new_node = new Node256();
@@ -106,15 +106,82 @@ namespace pinguqueen
         parent_slot = new_node;
     }
 
-    void shrink_256_to_48(Node*& parent_slot) noexcept
+    void RadixTrie::shrink_256_to_48(Node*& parent_slot) noexcept
     {
-        assert(parent_slot->_type != NodeType::Node256);
+        assert(parent_slot != nullptr);
+        assert(parent_slot->_type == NodeType::Node256);
 
         auto* old_node = static_cast<Node256*>(parent_slot);
         auto* new_node = new Node48();
 
+        new_node->_prefix_skip_length = old_node->_prefix_skip_length;
+        new_node->_child_count = old_node->_child_count;
+        new_node->_type = NodeType::Node48;
 
+        std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), Node48::NOTHING);
 
+        u8 next_free_slot = 0;
+        for (u16 key_byte = 0; key_byte < 256; ++key_byte) {
+            if (old_node->_children[key_byte] != nullptr) {
+                new_node->_children[next_free_slot] = old_node->_children[key_byte];
+                new_node->_keys[key_byte] = next_free_slot;
+                ++next_free_slot;
+                old_node->_children[key_byte] = nullptr;
+            }
+        }
+        delete old_node;
+        parent_slot = new_node;
+    }
+
+    void RadixTrie::shrink_48_to_16(Node*& parent_slot) noexcept
+{
+    assert(parent_slot != nullptr);
+    assert(parent_slot->_type == NodeType::Node48);
+
+    auto* old_node = static_cast<Node48*>(parent_slot);
+    auto* new_node = new Node16();
+
+    // Metadaten übertragen
+    new_node->_prefix_skip_length = old_node->_prefix_skip_length;
+    new_node->_child_count = old_node->_child_count;
+    new_node->_type = NodeType::Node16;
+
+    u8 next_free_slot = 0;
+    for (u16 key_byte = 0; key_byte < 256; ++key_byte) {
+        u8 index = old_node->_keys[key_byte];
+        if (index != Node48::NOTHING) {
+            new_node->_keys[next_free_slot] = static_cast<u8>(key_byte);
+            new_node->_children[next_free_slot] = old_node->_children[index];
+            ++next_free_slot;
+            old_node->_children[index] = nullptr;
+        }
+    }
+
+    delete old_node;
+    parent_slot = new_node;
+}
+
+void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
+{
+    assert(parent_slot != nullptr);
+    assert(parent_slot->_type == NodeType::Node16);
+
+    auto* old_node = static_cast<Node16*>(parent_slot);
+    auto* new_node = new Node4();
+
+    new_node->_prefix_skip_length = old_node->_prefix_skip_length;
+    new_node->_child_count = old_node->_child_count;
+    new_node->_type = NodeType::Node4;
+
+   
+    for (u8 i = 0; i < old_node->_child_count; ++i) {
+        new_node->_keys[i] = old_node->_keys[i];
+        new_node->_children[i] = old_node->_children[i];
+        old_node->_children[i] = nullptr;
+    }
+
+    delete old_node;
+    parent_slot = new_node;
     }
 
 
@@ -136,32 +203,91 @@ namespace pinguqueen
                     break;
             }
         }
-            switch (parent->_type)
+        switch (parent->_type)
+        {
+            case NodeType::Node4:
             {
-                case NodeType::Node4:
-                {
-                    static_cast<Node4*>(parent)->insert_pure(key, child);
-                    break;
-                }
-                case NodeType::Node16:
-                {
-                    static_cast<Node16*>(parent)->insert_pure(key, child);
-                    break;
-                }
-                case NodeType::Node48:
-                {
-                    static_cast<Node48*>(parent)->insert_pure(key, child);
-                    break;
-                }
-                case NodeType::Node256:
-                {
-                    static_cast<Node256*>(parent)->insert_pure(key, child);
-                    break;
-                }
-                default:
-                    break;
+                static_cast<Node4*>(parent)->insert_pure(key, child);
+                break;
             }
+            case NodeType::Node16:
+            {
+                static_cast<Node16*>(parent)->insert_pure(key, child);
+                break;
+            }
+            case NodeType::Node48:
+            {
+                static_cast<Node48*>(parent)->insert_pure(key, child);
+                break;
+            }
+            case NodeType::Node256:
+            {
+                static_cast<Node256*>(parent)->insert_pure(key, child);
+                break;
+            }
+            default:
+                break;
+        }
     }
+
+    void RadixTrie::remove_child(Node*& parent, u8 key, Node* child) noexcept
+{
+    switch (parent->_type)
+    {
+        case NodeType::Node4:
+            static_cast<Node4*>(parent)->remove_pure(key);
+            break;
+        case NodeType::Node16:
+            static_cast<Node16*>(parent)->remove_pure(key);
+            break;
+        case NodeType::Node48:
+            static_cast<Node48*>(parent)->remove_pure(key);
+            break;
+        case NodeType::Node256:
+            static_cast<Node256*>(parent)->remove_pure(key);
+            break;
+        default:
+            break;
+    }
+
+    switch (parent->_type)
+    {
+        case NodeType::Node256:
+            if (parent->_child_count <= Node256::SHRINKING_CHILD_COUNT) {
+                shrink_256_to_48(parent);
+            }
+            break;
+
+        case NodeType::Node48:
+            if (parent->_child_count <= Node48::SHRINKING_CHILD_COUNT) {
+                shrink_48_to_16(parent);
+            }
+            break;
+
+        case NodeType::Node16:
+            if (parent->_child_count <= Node16::SHRINKING_CHILD_COUNT) {
+                shrink_16_to_4(parent);
+            }
+            break;
+
+        case NodeType::Node4:
+            if (parent->_child_count == 1) {
+                auto* n4 = static_cast<Node4*>(parent);
+                Node* last_child = n4->_children[0];
+
+                last_child->_prefix_skip_length += n4->_prefix_skip_length + 1;
+
+                n4->_children[0] = nullptr;
+                delete n4;
+
+                parent = last_child;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
 
     u32 RadixTrie::check_prefix(const Node* node, std::string_view key, u32 depth) noexcept
     {
@@ -240,7 +366,7 @@ namespace pinguqueen
 
 
 
-    void RadixTrie::insert(Node*& node, std::string_view key, FileInfo* information, u32 depth)
+    void RadixTrie::insert_node(Node*& node, std::string_view key, FileInfo* information, u32 depth)
     {
         auto* leaf = new LeafNode();
         leaf->_type = NodeType::LeafNode;
@@ -290,14 +416,46 @@ namespace pinguqueen
         depth = depth + node->_prefix_skip_length;
         Node* next = node->find_child(key[depth]);
         if (next != nullptr) {
-            insert(next, key, information, depth + 1);
+            insert_node(next, key, information, depth + 1);
         }
         else {
             add_child(node, key[depth], leaf);
         }
 
     }
-    pinguqueen::FileInfo* pinguqueen::RadixTrie::search(std::string_view key) noexcept
+
+
+    void RadixTrie::delete_node(Node*& node, std::string_view key, u32 depth) noexcept
+    {
+        if (node == nullptr) return;
+
+        if (node->is_leaf()) {
+            auto* leaf = static_cast<LeafNode*>(node);
+            if (leaf->_full_key == key) {
+                delete leaf;
+                node = nullptr;
+            }
+            return;
+        }
+
+        u32 p = check_prefix(node, key, depth);
+        if (p != node->_prefix_skip_length) return;
+
+        depth += node->_prefix_skip_length;
+        u8 key_byte = static_cast<u8>(key[depth]);
+
+        Node* next = node->find_child(key_byte);
+
+        if (next != nullptr) {
+            delete_node(next, key, depth + 1);
+            if (next == nullptr) {
+                remove_child(node, key_byte, next);
+            }
+        }
+    }
+
+
+    FileInfo* RadixTrie::search(std::string_view key) noexcept
     {
 
         LeafNode* leaf = find_leaf_node(key);
