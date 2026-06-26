@@ -469,8 +469,8 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
     void RadixTrie::collect_all_leaves(Node* start_node, std::vector<std::string>& results) {
         if (start_node == nullptr) return;
 
-        // iterativ-recursiv
         std::vector<Node*> node_stack;
+        node_stack.reserve(256);
         node_stack.push_back(start_node);
 
         while (!node_stack.empty()) {
@@ -483,24 +483,27 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
                 continue;
             }
 
+            // Hardware-nahes Abwandern
             if (current->_type == NodeType::Node4) {
                 auto* n4 = static_cast<Node4*>(current);
-                // Von rechts nach links pushen, damit links zuerst verarbeitet wird
-                for (int i = n4->_child_count - 1; i >= 0; --i) {
-                    if (n4->_children[i]) node_stack.push_back(n4->_children[i]);
+                for (int i = static_cast<int>(n4->_child_count) - 1; i >= 0; --i) {
+                    node_stack.push_back(n4->_children[i]);
                 }
             }
             else if (current->_type == NodeType::Node16) {
                 auto* n16 = static_cast<Node16*>(current);
-                for (int i = n16->_child_count - 1; i >= 0; --i) {
-                    if (n16->_children[i]) node_stack.push_back(n16->_children[i]);
+                for (int i = static_cast<int>(n16->_child_count) - 1; i >= 0; --i) {
+                    node_stack.push_back(n16->_children[i]);
                 }
             }
             else if (current->_type == NodeType::Node48) {
                 auto* n48 = static_cast<Node48*>(current);
-                // Vorsicht: Loop läuft rückwärts über das kinder-array
-                for (int i = n48->_child_count - 1; i >= 0; --i) {
-                    if (n48->_children[i]) node_stack.push_back(n48->_children[i]);
+                // 🏆 KORREKTUR: Node48 hat maximal 48 Kinder-Slots.
+                // Wir müssen die physischen Slots rückwärts prüfen!
+                for (int i = 47; i >= 0; --i) {
+                    if (n48->_children[i] != nullptr) {
+                        node_stack.push_back(n48->_children[i]);
+                    }
                 }
             }
             else if (current->_type == NodeType::Node256) {

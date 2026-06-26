@@ -32,6 +32,7 @@ namespace pinguqueen::intern
         static void remove_child(Node*& parent, u8 key) noexcept;
         [[nodiscard]] static u32 check_prefix(const Node* node, std::string_view key, u32 depth) noexcept;
         [[nodiscard]] LeafNode* find_leaf_node(std::string_view key) noexcept;
+        static void collect_all_leaves(Node* node, std::vector<std::string>& results);
 
     public:
         RadixTrie() = default;
@@ -46,8 +47,8 @@ namespace pinguqueen::intern
         [[nodiscard]] FileInfo* search(std::string_view key) noexcept;
 
         //nicht dem Paper entsprechend. Diese Funktion gibt alle Suchelemente zurück
-        static void collect_all_leaves(Node* node, std::vector<std::string>& results);
-        std::vector<std::string> get_all_paths_with_prefix(const std::string& prefix);
+
+        [[nodiscard]] std::vector<std::string> get_all_paths_with_prefix(const std::string& prefix);
 
     };
 }
