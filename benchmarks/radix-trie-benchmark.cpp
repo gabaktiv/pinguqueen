@@ -63,7 +63,6 @@ namespace {
         }
     };
 
-    // 🏆 Rückgabetyp korrigiert auf pinguqueen::intern::FileInfo
     [[nodiscard]] std::unique_ptr<pinguqueen::intern::FileInfo> makeFileInfo(
         std::string name,
         pinguqueen::u32 size
@@ -215,8 +214,6 @@ namespace {
         TrieInput const& input
     ) {
         for (auto _: state) {
-            (void) _;
-
             pinguqueen::intern::Node* root = nullptr;
 
             for (std::size_t index = 0; index < input.keys.size(); ++index) {
@@ -247,8 +244,6 @@ namespace {
         PreparedTrie trie = buildTrie(input);
 
         for (auto _: state) {
-            (void) _;
-
             for (std::string const& key : input.keys) {
                 pinguqueen::intern::LeafNode const* leaf = findLeaf(trie.root, key);
                 benchmark::DoNotOptimize(leaf);
@@ -271,8 +266,6 @@ namespace {
         PreparedTrie trie = buildTrie(input);
 
         for (auto _: state) {
-            (void) _;
-
             for (unsigned char suffix = 1; suffix <= key_count; ++suffix) {
                 pinguqueen::intern::Node* child = trie.root->find_child(suffix);
                 benchmark::DoNotOptimize(child);
@@ -292,8 +285,6 @@ namespace {
         TrieInput const& input
     ) {
         for (auto _: state) {
-            (void) _;
-
             state.PauseTiming();
             PreparedTrie trie = buildTrie(input);
             state.ResumeTiming();

@@ -59,6 +59,14 @@ add_executable(radix_trie_tests
         tests/radix-test.cpp
 )
 
+add_executable(sandbox
+        benchmarks/sandbox.cpp
+)
+target_link_libraries(sandbox PRIVATE
+        trie_core
+)
+
+
 target_link_libraries(radix_trie_tests PRIVATE
         trie_core
 )

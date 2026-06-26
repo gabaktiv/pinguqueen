@@ -178,5 +178,24 @@ int main(int argc, char** argv)
         PQ_EXPECT(results.empty());
     });
 
+    suite.run("stress_test_mass_delete_indexed_paths", [&] {
+    TrieFixture fixture;
+    const int key_count = 2000; // Genug Masse, um Node48 und Node256 zu erzwingen
+
+    // 1. Die exakt gleiche Struktur wie im Benchmark aufbauen
+    for (int i = 0; i < key_count; ++i) {
+        std::string key = "workspace/project/module_" + std::to_string(i % 64) + "/file_" + std::to_string(i) + ".cpp";
+        fixture.insert(key);
+    }
+
+    // 2. Alle wieder strukturiert löschen
+    for (int i = 0; i < key_count; ++i) {
+        std::string key = "workspace/project/module_" + std::to_string(i % 64) + "/file_" + std::to_string(i) + ".cpp";
+        fixture.erase(key);
+    }
+
+    PQ_EXPECT(fixture.root == nullptr);
+});
+
     return suite.finish();
 }
