@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cassert>
 
-namespace pinguqueen
+namespace pinguqueen::intern
 {
     RadixTrie::~RadixTrie()
     {
@@ -70,7 +70,7 @@ namespace pinguqueen
 
         std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), static_cast<u8>(Node48::NOTHING));
 
-        for (u8 i = 0; i < 16; ++i){
+        for (u8 i = 0; i < Node16::GROW_CHILD_COUNT; ++i){
             u8 key_byte = old_node->_keys[i];
             new_node->_children[i] = old_node->_children[i];
             new_node->_keys[key_byte] = i;
@@ -122,7 +122,7 @@ namespace pinguqueen
         std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), Node48::NOTHING);
 
         u8 next_free_slot = 0;
-        for (u16 key_byte = 0; key_byte < 256; ++key_byte) {
+        for (u16 key_byte = 0; key_byte < Node256::FULL; ++key_byte) {
             if (old_node->_children[key_byte] != nullptr) {
                 new_node->_children[next_free_slot] = old_node->_children[key_byte];
                 new_node->_keys[key_byte] = next_free_slot;
@@ -175,7 +175,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
     new_node->_type = NodeType::Node4;
 
    
-    for (u8 i = 0; i < old_node->_child_count; ++i) {
+    for (u16 i = 0; i < old_node->_child_count; ++i) {
         new_node->_keys[i] = old_node->_keys[i];
         new_node->_children[i] = old_node->_children[i];
         old_node->_children[i] = nullptr;
@@ -465,4 +465,88 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         }
         return nullptr;
     }
+
+    void RadixTrie::collect_all_leaves(Node* start_node, std::vector<std::string>& results) {
+        if (start_node == nullptr) return;
+
+        // iterativ-recursiv
+        std::vector<Node*> node_stack;
+        node_stack.push_back(start_node);
+
+        while (!node_stack.empty()) {
+            Node* current = node_stack.back();
+            node_stack.pop_back();
+
+            if (current->is_leaf()) {
+                auto* leaf = static_cast<LeafNode*>(current);
+                results.push_back(leaf->_full_key);
+                continue;
+            }
+
+            if (current->_type == NodeType::Node4) {
+                auto* n4 = static_cast<Node4*>(current);
+                // Von rechts nach links pushen, damit links zuerst verarbeitet wird
+                for (int i = n4->_child_count - 1; i >= 0; --i) {
+                    if (n4->_children[i]) node_stack.push_back(n4->_children[i]);
+                }
+            }
+            else if (current->_type == NodeType::Node16) {
+                auto* n16 = static_cast<Node16*>(current);
+                for (int i = n16->_child_count - 1; i >= 0; --i) {
+                    if (n16->_children[i]) node_stack.push_back(n16->_children[i]);
+                }
+            }
+            else if (current->_type == NodeType::Node48) {
+                auto* n48 = static_cast<Node48*>(current);
+                // Vorsicht: Loop läuft rückwärts über das kinder-array
+                for (int i = n48->_child_count - 1; i >= 0; --i) {
+                    if (n48->_children[i]) node_stack.push_back(n48->_children[i]);
+                }
+            }
+            else if (current->_type == NodeType::Node256) {
+                auto* n256 = static_cast<Node256*>(current);
+                for (int i = 255; i >= 0; --i) {
+                    if (n256->_children[i] != nullptr) {
+                        node_stack.push_back(n256->_children[i]);
+                    }
+                }
+            }
+        }
+    }
+
+    std::vector<std::string> RadixTrie::get_all_paths_with_prefix(const std::string& prefix) {
+        std::vector<std::string> results;
+        if (_root == nullptr) return results;
+
+        Node* current = _root;
+        u32 depth = 0;
+
+        //Navigation to that Node where the prefix matches.
+        while (current != nullptr) {
+            if (current->is_leaf()) {
+                auto* leaf = static_cast<LeafNode*>(current);
+
+                if (leaf->_full_key.rfind(prefix, 0) == 0) {
+                    results.push_back(leaf->_full_key);
+                }
+                return results;
+            }
+
+            if (depth >= prefix.size()) {
+                break;
+            }
+
+            depth += current->_prefix_skip_length;
+
+            if (depth >= prefix.size()) {
+                break;
+            }
+
+            current = current->find_child(static_cast<u8>(prefix[depth]));
+            ++depth;
+        }
+        collect_all_leaves(current, results);
+        return results;
+    }
+
 }

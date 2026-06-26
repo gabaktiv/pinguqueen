@@ -2,9 +2,14 @@
 #include "../global.hpp"
 #include "node.hpp"
 
-//TODO: Implementation als Single-Ton-Art
+//TODO: Implementation als Single-Ton
 
-namespace pinguqueen
+/*
+ * - Header-Datei des Adaptiven-Radix-Trie anhand des in der Readme verlinkten Paper.
+ * - Viele Funktionen sind static, da sie nur die Nodes verwalten
+*/
+
+namespace pinguqueen::intern
 {
     class RadixTrie
     {
@@ -39,6 +44,11 @@ namespace pinguqueen
         static void insert_node(Node*& node, std::string_view key, FileInfo* information, u32 depth);
         static void delete_node (Node*& node, std::string_view key, u32 depth) noexcept;
         [[nodiscard]] FileInfo* search(std::string_view key) noexcept;
+
+        //nicht dem Paper entsprechend. Diese Funktion gibt alle Suchelemente zurück
+        static void collect_all_leaves(Node* node, std::vector<std::string>& results);
+        std::vector<std::string> get_all_paths_with_prefix(const std::string& prefix);
+
     };
 }
 

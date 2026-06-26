@@ -4,18 +4,20 @@
 #include <string>
 
 /*
- *Hier ist die Node-Struktur des Radix-Trie implementiert. Dabei ermöglicht diese Struktur die dynamische anpassung der Anzahl der Kinder, um Speicher anzupassen.
- *Die Anzahl der Kinder is hard-coded, Struktur wie std::vector wird nicht verwendet, da dieser standartmäßig mind. 24 Bytes verbraucht.
- * TODO: Ich nutze aus, dass die letzten 3 bits jeder erster speicheradresse einer allokation 0 sind und erkenne mit pointertagging dann, in dem ich den letzten bit auf 1 setze, ob mein knoten ein Leaf is
- */
+ * - Hier ist die Node-Struktur des Adaptive-Radix-Trie implementiert. Dabei ermöglicht diese Struktur die dynamische anpassung der Anzahl der Kinder, um Speicher anzupassen.
+ * - Die Anzahl der Kinder is hard-coded, Struktur wie std::vector wird nicht verwendet, da dieser standartmäßig mind. 24 Bytes overhead verbraucht.
+ * - TODO: Ich nutze aus, dass die letzten 3 bits jeder erster speicheradresse einer allokation 0 sind und erkenne mit pointertagging dann, in dem ich den letzten bit auf 1 setze, ob mein knoten ein Leaf is
+ * - Die Node Implementierungs-Entscheidungen sind aus dem in der Readme verlinkten Paper zurückzuführen, wobei nur der optimistische Ansatz implementiert ist mit der _prefix_skip_length variabel.
+ * - Die Funktionen insert_pure und remove_pure sind nicht virtuell, da zu einem, der Leaf Node diese Funktionen nicht braucht, und sowieso im Kontext des Nutzen abgefragt werden sollte,
+ * was für eine Art Knoten diese Funktion ausführt, da diese zuvor vielleicht schrumpfen oder erweitert werden müssen
+*/
 
-namespace pinguqueen {
+namespace pinguqueen::intern {
 
     enum class NodeType : u8 { Node4, Node16, Node48, Node256, LeafNode };
 
-    class Node
+    struct Node
     {
-    public:
         //  Anzahl der zu blind überspringenden Zeichen des Suchstrings
         u32 _prefix_skip_length = 0;
         u16 _child_count = 0;
@@ -39,9 +41,10 @@ namespace pinguqueen {
 
     };
 
-    class LeafNode : public Node
+    // Should only provide Information about the data.
+
+    struct LeafNode :  Node
     {
-    public:
         std::string _full_key;
         FileInfo* _metadata = nullptr;
 
@@ -53,7 +56,14 @@ namespace pinguqueen {
 
     };
 
-    class Node4 : public Node
+    // - Node4 and Node16 are very similar. The connection to the children is implemented with 2 arrays.
+    // - _keys[i] represent the edge and _children[i] leads to the next node.
+    // - Example _keys[1] -> 'e'; _children[1] -> node4
+    // - It's important in the deletion process, that these arrays are filled from left to right with no spaces inbetween.
+    // - Also inserting an edge will sort them with an insertion sort algorithm
+    // (Handling of deletion, inserting and searching is implemented in the Adaptive-Radix-Trie Class, not here or the node.cpp)
+
+    struct Node4 :  Node
     {
     public:
 
@@ -79,7 +89,9 @@ namespace pinguqueen {
         void remove_pure(u8 key) noexcept;
     };
 
-    class Node16 : public Node
+
+
+    struct Node16 : Node
     {
     public:
         u8 _keys[16]{};
@@ -100,18 +112,22 @@ namespace pinguqueen {
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
-        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVING OF POINTER / NO DELETION
+        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVES POINTER / NO DELETION
         void remove_pure(u8 key) noexcept;
     };
 
-    class Node48 : public Node
+    // - char gets hashmapped in _keys array -> content of one index equals the index in _children array to the next child.
+    // - Example: _keys[e] -> 5; _children[5] -> node4. Annoying to implement shrink and grow functions, but space-efficient.
+    // - The const "NOTHING" variable is the default variable for non exisiting edges in the _keys array.
+    struct Node48 : Node
     {
     public:
-        u8 _keys[256]{};
-        Node* _children[48]{};
         static constexpr u8 NOTHING = 48;
         static constexpr u8 SHRINKING_CHILD_COUNT = 15;
         static constexpr u8 GROW_CHILD_COUNT = 48;
+
+        u8 _keys[256]{};
+        Node* _children[48]{};
 
         Node48() = default;
         ~Node48() override;
@@ -126,13 +142,13 @@ namespace pinguqueen {
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
 
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
-        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVING OF POINTER / NO DELETION
+        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVES POINTER / NO DELETION
         void remove_pure(u8 key) noexcept;
     };
 
-    
+    //Only one children Array, Edges and Nodes get Hashmapped. Example:  _children['e'] -> node4
 
-    class Node256 : public Node
+    struct Node256 : Node
     {
     public:
         Node* _children[256]{};
@@ -154,7 +170,8 @@ namespace pinguqueen {
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
 
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
-        void remove_pure(u8 key) noexcept;  //!DANGEROUS, NO SHRINKING OF NODE IF TOO EMPTY
+        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVES POINTER / NO DELETION
+        void remove_pure(u8 key) noexcept;
     };
 
 }

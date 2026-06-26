@@ -11,6 +11,7 @@
 namespace {
 
     using namespace pinguqueen;
+    using namespace pinguqueen::intern;
 
     struct TrieFixture {
         Node* root = nullptr;

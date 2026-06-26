@@ -2,7 +2,7 @@
 #include "../global.hpp"
 
 
-namespace pinguqueen {
+namespace pinguqueen::intern {
 
     struct FileInfo {
 

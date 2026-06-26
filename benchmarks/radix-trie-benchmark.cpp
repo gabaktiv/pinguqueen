@@ -27,12 +27,12 @@ namespace {
 
     struct TrieInput {
         std::vector<std::string> keys;
-        std::vector<std::unique_ptr<pinguqueen::FileInfo>> metadata;
+        std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
     };
 
     struct PreparedTrie {
-        pinguqueen::Node* root = nullptr;
-        std::vector<std::unique_ptr<pinguqueen::FileInfo>> metadata;
+        pinguqueen::intern::Node* root = nullptr;
+        std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
 
         PreparedTrie() = default;
 
@@ -63,11 +63,12 @@ namespace {
         }
     };
 
-    [[nodiscard]] std::unique_ptr<pinguqueen::FileInfo> makeFileInfo(
+    // 🏆 Rückgabetyp korrigiert auf pinguqueen::intern::FileInfo
+    [[nodiscard]] std::unique_ptr<pinguqueen::intern::FileInfo> makeFileInfo(
         std::string name,
         pinguqueen::u32 size
     ) {
-        auto info = std::make_unique<pinguqueen::FileInfo>();
+        auto info = std::make_unique<pinguqueen::intern::FileInfo>();
         info->file_name = std::move(name);
         info->file_size_bytes = size;
         return info;
@@ -164,7 +165,7 @@ namespace {
                 input.keys[index],
                 static_cast<pinguqueen::u32>(index + 1)
             ));
-            pinguqueen::RadixTrie::insert_node(
+            pinguqueen::intern::RadixTrie::insert_node(
                 trie.root,
                 input.keys[index],
                 trie.metadata.back().get(),
@@ -175,25 +176,25 @@ namespace {
         return trie;
     }
 
-    [[nodiscard]] pinguqueen::LeafNode const* asLeaf(
-        pinguqueen::Node const* node
+    [[nodiscard]] pinguqueen::intern::LeafNode const* asLeaf(
+        pinguqueen::intern::Node const* node
     ) {
         if (node == nullptr || !node->is_leaf()) {
             return nullptr;
         }
 
-        return static_cast<pinguqueen::LeafNode const*>(node);
+        return static_cast<pinguqueen::intern::LeafNode const*>(node);
     }
 
-    [[nodiscard]] pinguqueen::LeafNode const* findLeaf(
-        pinguqueen::Node* root,
+    [[nodiscard]] pinguqueen::intern::LeafNode const* findLeaf(
+        pinguqueen::intern::Node* root,
         std::string_view key
     ) {
-        pinguqueen::Node* current = root;
+        pinguqueen::intern::Node* current = root;
         pinguqueen::u32 depth = 0;
 
         while (current != nullptr) {
-            if (pinguqueen::LeafNode const* leaf = asLeaf(current)) {
+            if (pinguqueen::intern::LeafNode const* leaf = asLeaf(current)) {
                 return leaf->_full_key == key ? leaf : nullptr;
             }
 
@@ -216,10 +217,10 @@ namespace {
         for (auto _: state) {
             (void) _;
 
-            pinguqueen::Node* root = nullptr;
+            pinguqueen::intern::Node* root = nullptr;
 
             for (std::size_t index = 0; index < input.keys.size(); ++index) {
-                pinguqueen::RadixTrie::insert_node(
+                pinguqueen::intern::RadixTrie::insert_node(
                     root,
                     input.keys[index],
                     input.metadata[index].get(),
@@ -249,7 +250,7 @@ namespace {
             (void) _;
 
             for (std::string const& key : input.keys) {
-                pinguqueen::LeafNode const* leaf = findLeaf(trie.root, key);
+                pinguqueen::intern::LeafNode const* leaf = findLeaf(trie.root, key);
                 benchmark::DoNotOptimize(leaf);
             }
 
@@ -273,7 +274,7 @@ namespace {
             (void) _;
 
             for (unsigned char suffix = 1; suffix <= key_count; ++suffix) {
-                pinguqueen::Node* child = trie.root->find_child(suffix);
+                pinguqueen::intern::Node* child = trie.root->find_child(suffix);
                 benchmark::DoNotOptimize(child);
             }
 
@@ -298,7 +299,7 @@ namespace {
             state.ResumeTiming();
 
             for (std::string const& key : input.keys) {
-                pinguqueen::RadixTrie::delete_node(trie.root, key, 0);
+                pinguqueen::intern::RadixTrie::delete_node(trie.root, key, 0);
             }
 
             benchmark::DoNotOptimize(trie.root);
@@ -390,11 +391,10 @@ namespace {
         runDeleteBenchmark(state, input);
     }
 
-    // 🏆 Saubere Platzierung des Gegenbeweises im Namensraum
     void BM_Lookup_StdMap(benchmark::State& state) {
         auto const input = makeSharedPrefixInput(static_cast<std::size_t>(state.range(0)));
 
-        std::map<std::string, pinguqueen::FileInfo*> standard_map;
+        std::map<std::string, pinguqueen::intern::FileInfo*> standard_map;
         for (std::size_t index = 0; index < input.keys.size(); ++index) {
             standard_map[input.keys[index]] = input.metadata[index].get();
         }
@@ -425,8 +425,6 @@ BENCHMARK(BM_DirectChildLookupAfterAdaptiveGrowth)->Arg(5)->Arg(17)->Arg(49);
 BENCHMARK(BM_DeleteIndexedPaths)->Arg(10)->Arg(100)->Arg(1000);
 BENCHMARK(BM_DeleteSharedPrefixPaths)->Arg(10)->Arg(100)->Arg(1000);
 
-// 🏆 Registrierung der Map-Suche aktivieren
 BENCHMARK(BM_Lookup_StdMap)->Arg(10)->Arg(100)->Arg(1000)->Arg(10000);
 
-// 🏆 Die Lebensretter-Zeile, die vorhin gefehlt hat!
 BENCHMARK_MAIN();

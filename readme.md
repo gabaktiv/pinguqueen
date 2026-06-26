@@ -14,4 +14,7 @@ Dieses Projekt ist eine wilde Mischung aus richtig hässlichem Data-Oriented-Des
 
 
 
+Unter der executable "All CTest" können die Testtreiber zu dem Adaptive-Radix-Trie gestartet werden und unter
+"radix-trie-benchmarks", die benchmarktests für den ART.
 
+Beide diese Tests, sind bis jetzt KI generiert.

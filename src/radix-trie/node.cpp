@@ -1,7 +1,7 @@
 #include "node.hpp"
 #include <format>
 #include <emmintrin.h>
-namespace pinguqueen {
+namespace pinguqueen::intern {
 
     Node4::~Node4()
     {
@@ -30,7 +30,6 @@ namespace pinguqueen {
             delete child;
         }
     }
-
 
 
     Node* Node4::find_child(u8 key_byte) noexcept
@@ -78,6 +77,7 @@ namespace pinguqueen {
     }
 
     //!DANGEROUS, NO GROW IF FULL
+    //Insertion Sort
     void Node4::insert_pure(u8 key, Node* child) noexcept
     {
         assert(_child_count < 4);
