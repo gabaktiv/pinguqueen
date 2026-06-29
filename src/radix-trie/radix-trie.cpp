@@ -392,9 +392,15 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
 
             newNode->_prefix_skip_length = i - depth;
             depth = depth + newNode->_prefix_skip_length;
-
-            add_child(newNode, static_cast<u8>(key[depth]), leaf);
-            add_child(newNode, static_cast<u8>(key2[depth]), node);
+            
+            if (depth < key.length()) {
+                add_child(newNode, static_cast<u8>(key[depth]), leaf);
+            } else {
+                delete leaf;
+            }
+            if (depth < key2.length()) {
+                add_child(newNode, static_cast<u8>(key2[depth]), node);
+            }
             replace(node, newNode);
             return;
         }
@@ -405,9 +411,15 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
 
             std::string_view valid_key = load_key(node);
 
-            add_child(newNode, static_cast<u8>(key[depth+p]), leaf);
-            add_child(newNode, static_cast<u8>(valid_key[depth + p]), node);
-            newNode->_prefix_skip_length = p;
+            if (depth+p < key.length()) {
+                add_child(newNode, static_cast<u8>(key[depth+p]), leaf);
+            } else {
+                delete leaf;
+            }
+            if (depth+p < valid_key.length()) {
+                add_child(newNode, static_cast<u8>(valid_key[depth + p]), node);
+            }
+                newNode->_prefix_skip_length = p;
             node->_prefix_skip_length -= (p + 1);
             replace(node, newNode);
             return;
@@ -418,9 +430,14 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         Node* next = node->find_child(static_cast<u8>(key[depth]));
         if (next != nullptr) {
             insert_node(next, key, information, depth + 1);
+            delete leaf;
         }
         else {
-            add_child(node, static_cast<u8>(key[depth]), leaf);
+            if (depth < key.length()) {
+                add_child(node, static_cast<u8>(key[depth]), leaf);
+            } else {
+                delete leaf;
+            }
         }
 
     }
