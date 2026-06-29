@@ -18,6 +18,7 @@ namespace pinguqueen::intern
     {
         assert(src != nullptr);
         dest = src;
+
     }
 
     bool RadixTrie::is_leaf(const Node* node) noexcept
@@ -422,6 +423,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
                 newNode->_prefix_skip_length = p;
             node->_prefix_skip_length -= (p + 1);
             replace(node, newNode);
+            delete node;
             return;
 
         }

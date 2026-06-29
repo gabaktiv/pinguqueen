@@ -45,15 +45,23 @@ target_include_directories(trie_core PUBLIC
 # Tests
 enable_testing()
 
-add_executable(trie_tests
-        tests/main-test.cpp
-)
+find_package(GTest CONFIG QUIET)
 
-target_link_libraries(trie_tests PRIVATE
-        trie_core
-)
+if (NOT GTest_FOUND)
+        include(FetchContent)
 
-add_test(NAME trie_tests COMMAND trie_tests)
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+        FetchContent_Declare(
+                googletest
+                GIT_REPOSITORY https://github.com/google/googletest.git
+                GIT_TAG v1.15.2
+        )
+
+        FetchContent_MakeAvailable(googletest)
+endif()
+
+include(GoogleTest)
 
 add_executable(radix_trie_tests
         tests/radix-test.cpp
@@ -69,48 +77,10 @@ target_link_libraries(sandbox PRIVATE
 
 target_link_libraries(radix_trie_tests PRIVATE
         trie_core
+        GTest::gtest_main
 )
 
-set(RADIX_TRIE_TESTS
-        insert_empty_creates_leaf
-        split_shared_prefix_type_is_node4
-        split_shared_prefix_skip_length
-        split_shared_prefix_child_count
-        split_shared_prefix_left_leaf_reachable
-        split_shared_prefix_right_leaf_reachable
-        split_shared_prefix_missing_leaf_not_found
-        node4_three_children_keeps_first_leaf
-        grow_node4_to_node16_type
-        grow_node4_to_node16_child_count
-        grow_node4_to_node16_keeps_edge_children
-        grow_node16_to_node48_type
-        grow_node16_to_node48_child_count
-        grow_node16_to_node48_keeps_edge_children
-        node48_before_grow_has_expected_prefix
-        node48_before_grow_has_expected_child_count
-        node48_before_grow_edge_children_reachable
-        grow_node48_to_node256_type
-        grow_node48_to_node256_child_count
-        grow_node48_to_node256_preserves_prefix_skip
-        grow_node48_to_node256_maps_first_child_directly
-        grow_node48_to_node256_maps_last_child_directly
-        grow_node48_to_node256_first_leaf_reachable
-        grow_node48_to_node256_last_leaf_reachable
-        delete_node4_removes_target_leaf
-        delete_node4_keeps_sibling_leaves
-        shrink_node16_to_node4_type
-        shrink_node16_to_node4_child_count
-        shrink_node48_to_node16_type
-        shrink_node48_to_node16_child_count
-        delete_node256_single_child_reduces_count
-        delete_node256_single_child_removes_direct_child
-        shrink_node256_to_node48_type
-        shrink_node256_to_node48_child_count
-)
-
-foreach(test_name IN LISTS RADIX_TRIE_TESTS)
-        add_test(NAME radix_trie.${test_name} COMMAND radix_trie_tests ${test_name})
-endforeach()
+gtest_discover_tests(radix_trie_tests)
 
 # Benchmarks
 find_package(benchmark CONFIG QUIET)

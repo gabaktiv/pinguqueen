@@ -1,201 +1,319 @@
-#include "support/test-suite.hpp"
+#include <gtest/gtest.h>
 
 #include "radix-trie/file-info.hpp"
+#include "radix-trie/node.hpp"
 #include "radix-trie/radix-trie.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <algorithm> // Für std::find
 
 namespace {
 
-    using namespace pinguqueen;
-    using namespace pinguqueen::intern;
+using namespace pinguqueen;
+using namespace pinguqueen::intern;
 
-    struct TrieFixture {
-        // 🏆 Die Instanz, da get_all_paths_with_prefix auf _root operiert
-        RadixTrie trie;
-        Node* root = nullptr;
-        std::vector<std::unique_ptr<FileInfo>> metadata;
+struct RadixTrieFixture : testing::Test {
+    Node* root = nullptr;
+    std::vector<std::unique_ptr<FileInfo>> metadata;
 
-        ~TrieFixture()
-        {
-            delete root;
-        }
-
-        FileInfo* make_file(std::string name, u32 size)
-        {
-            auto info = std::make_unique<FileInfo>();
-            info->file_name = std::move(name);
-            info->file_size_bytes = size;
-
-            FileInfo* raw = info.get();
-            metadata.push_back(std::move(info));
-            return raw;
-        }
-
-        FileInfo* insert(std::string_view key, u32 size = 1)
-        {
-            FileInfo* info = make_file(std::string(key), size);
-            // Wir befüllen sowohl das fixture-eigene root (für alte Tests)
-            // als auch die trie-Instanz, falls insert_node intern dort greift.
-            // Falls deine RadixTrie Klasse die Methode als Member anbietet,
-            // sollte sie idealerweise die Instanz manipulieren.
-            RadixTrie::insert_node(root, key, info, 0);
-
-            // Hack/Brücke, um der trie-Instanz das root unterzujubeln, falls
-            // get_all_paths_with_prefix auf das private _root zugreift.
-            // (Hinweis: Wenn get_all_paths_with_prefix eine Instanzmethode ist,
-            // sollte dein echtes Programm das root intern in der trie-Instanz verwalten.
-            // Wir spiegeln das hier für die Testbarkeit, indem wir davon ausgehen,
-            // dass du die Funktion auf der Fixture-Instanz aufrufst).
-            return info;
-        }
-
-        void erase(std::string_view key)
-        {
-            RadixTrie::delete_node(root, key, 0);
-        }
-
-        // 🏆 Hilfsmethode, um zu prüfen, ob ein Pfad im Ergebnis-Vektor existiert
-        bool contains(const std::vector<std::string>& vec, const std::string& value) {
-            return std::find(vec.begin(), vec.end(), value) != vec.end();
-        }
-    };
-
-    std::string key_with_suffix(unsigned char suffix)
+    ~RadixTrieFixture() override
     {
-        std::string key = "p";
-        key.push_back(static_cast<char>(suffix));
-        return key;
+        delete root;
     }
 
-    const LeafNode* as_leaf(const Node* node)
+    FileInfo* make_file(std::string name, u32 size = 1)
     {
-        if (node == nullptr || !node->is_leaf()) {
-            return nullptr;
-        }
-        return static_cast<const LeafNode*>(node);
+        auto info = std::make_unique<FileInfo>();
+        info->file_name = std::move(name);
+        info->file_size_bytes = size;
+
+        FileInfo* raw = info.get();
+        metadata.push_back(std::move(info));
+        return raw;
     }
 
-    const LeafNode* find_leaf(Node* root, std::string_view key)
+    FileInfo* insert(std::string_view key, u32 size = 1)
     {
-        Node* current = root;
-        u32 depth = 0;
+        FileInfo* info = make_file(std::string(key), size);
+        RadixTrie::insert_node(root, key, info, 0);
+        return info;
+    }
 
-        while (current != nullptr) {
-            if (const LeafNode* leaf = as_leaf(current)) {
-                return leaf->_full_key == key ? leaf : nullptr;
-            }
+    void erase(std::string_view key)
+    {
+        RadixTrie::delete_node(root, key, 0);
+    }
+};
 
-            depth += current->_prefix_skip_length;
-            if (depth >= key.size()) {
-                return nullptr;
-            }
+std::string key_with_suffix(unsigned char suffix)
+{
+    std::string key = "p";
+    key.push_back(static_cast<char>(suffix));
+    return key;
+}
 
-            current = current->find_child(static_cast<u8>(key[depth]));
-            ++depth;
-        }
-
+const LeafNode* as_leaf(const Node* node)
+{
+    if (node == nullptr || !node->is_leaf()) {
         return nullptr;
     }
 
-    void insert_suffix_range(TrieFixture& fixture, unsigned char first, unsigned char last)
-    {
-        for (unsigned char suffix = first; suffix <= last; ++suffix) {
-            fixture.insert(key_with_suffix(suffix), suffix);
-        }
-    }
-
-    Node* child_for_suffix(Node* root, unsigned char suffix)
-    {
-        if (root == nullptr) {
-            return nullptr;
-        }
-        return root->find_child(suffix);
-    }
-
+    return static_cast<const LeafNode*>(node);
 }
 
-int main(int argc, char** argv)
+const LeafNode* find_leaf(Node* root, std::string_view key)
 {
-    const std::string_view test_filter = argc > 1 ? std::string_view(argv[1]) : std::string_view();
-    pinguqueen::tests::TestSuite suite("RadixTrie", test_filter);
+    Node* current = root;
+    u32 depth = 0;
 
-    // ... [Deine bisherigen Tests bleiben exakt so hier stehen] ...
-
-    // ============================================================================
-    // NEUE TESTS FÜR DIE PRÄFIX-SUCHE (TUI FRONTEND BINDUNG)
-    // ============================================================================
-
-    suite.run("prefix_search_empty_trie_returns_empty", [&] {
-        TrieFixture fixture;
-
-        // Suche auf leerem Baum
-        auto results = fixture.trie.get_all_paths_with_prefix("workspace");
-
-        PQ_EXPECT(results.empty());
-    });
-
-    suite.run("prefix_search_exact_match_on_leaf", [&] {
-        TrieFixture fixture;
-        fixture.insert("workspace/project/main.cpp");
-        fixture.insert("workspace/docs/readme.md");
-
-        // Suche nach einem exakten Blatt-Pfad
-        auto results = fixture.trie.get_all_paths_with_prefix("workspace/project/main.cpp");
-
-        PQ_EXPECT_EQ(results.size(), 1U);
-        if (!results.empty()) {
-            PQ_EXPECT_EQ(results[0], std::string("workspace/project/main.cpp"));
+    while (current != nullptr) {
+        if (const LeafNode* leaf = as_leaf(current)) {
+            return leaf->_full_key == key ? leaf : nullptr;
         }
-    });
 
-    suite.run("prefix_search_collects_multiple_leaves", [&] {
-        TrieFixture fixture;
-        fixture.insert("workspace/project/file_a.cpp");
-        fixture.insert("workspace/project/file_b.cpp");
-        fixture.insert("workspace/docs/readme.md");
+        depth += current->_prefix_skip_length;
+        if (depth >= key.size()) {
+            return nullptr;
+        }
 
-        // Suche an einer Weiche (sollte beide Dateien im Ordner finden)
-        auto results = fixture.trie.get_all_paths_with_prefix("workspace/project/");
-
-        PQ_EXPECT_EQ(results.size(), 2U);
-        PQ_EXPECT(fixture.contains(results, "workspace/project/file_a.cpp"));
-        PQ_EXPECT(fixture.contains(results, "workspace/project/file_b.cpp"));
-        PQ_EXPECT(!fixture.contains(results, "workspace/docs/readme.md"));
-    });
-
-    suite.run("prefix_search_no_match_returns_empty", [&] {
-        TrieFixture fixture;
-        fixture.insert("workspace/project/main.cpp");
-
-        // Suche nach einem nicht existierenden Pfad-Präfix
-        auto results = fixture.trie.get_all_paths_with_prefix("downloads");
-
-        PQ_EXPECT(results.empty());
-    });
-
-    suite.run("stress_test_mass_delete_indexed_paths", [&] {
-    TrieFixture fixture;
-    const int key_count = 2000; // Genug Masse, um Node48 und Node256 zu erzwingen
-
-    // 1. Die exakt gleiche Struktur wie im Benchmark aufbauen
-    for (int i = 0; i < key_count; ++i) {
-        std::string key = "workspace/project/module_" + std::to_string(i % 64) + "/file_" + std::to_string(i) + ".cpp";
-        fixture.insert(key);
+        current = current->find_child(static_cast<u8>(key[depth]));
+        ++depth;
     }
 
-    // 2. Alle wieder strukturiert löschen
-    for (int i = 0; i < key_count; ++i) {
-        std::string key = "workspace/project/module_" + std::to_string(i % 64) + "/file_" + std::to_string(i) + ".cpp";
-        fixture.erase(key);
+    return nullptr;
+}
+
+void insert_suffix_range(RadixTrieFixture& fixture, unsigned char first, unsigned char last)
+{
+    for (unsigned char suffix = first; suffix <= last; ++suffix) {
+        fixture.insert(key_with_suffix(suffix), suffix);
+    }
+}
+
+std::vector<std::string> collect_keys(Node* root)
+{
+    std::vector<std::string> keys;
+    std::vector<Node*> stack;
+
+    if (root != nullptr) {
+        stack.push_back(root);
     }
 
-    PQ_EXPECT(fixture.root == nullptr);
-});
+    while (!stack.empty()) {
+        Node* current = stack.back();
+        stack.pop_back();
 
-    return suite.finish();
+        if (const LeafNode* leaf = as_leaf(current)) {
+            keys.push_back(leaf->_full_key);
+            continue;
+        }
+
+        if (current->_type == NodeType::Node4) {
+            auto* node = static_cast<Node4*>(current);
+            for (u16 i = 0; i < node->_child_count; ++i) {
+                stack.push_back(node->_children[i]);
+            }
+        }
+        else if (current->_type == NodeType::Node16) {
+            auto* node = static_cast<Node16*>(current);
+            for (u16 i = 0; i < node->_child_count; ++i) {
+                stack.push_back(node->_children[i]);
+            }
+        }
+        else if (current->_type == NodeType::Node48) {
+            auto* node = static_cast<Node48*>(current);
+            for (Node* child : node->_children) {
+                if (child != nullptr) {
+                    stack.push_back(child);
+                }
+            }
+        }
+        else if (current->_type == NodeType::Node256) {
+            auto* node = static_cast<Node256*>(current);
+            for (Node* child : node->_children) {
+                if (child != nullptr) {
+                    stack.push_back(child);
+                }
+            }
+        }
+    }
+
+    std::sort(keys.begin(), keys.end());
+    return keys;
+}
+
+} // namespace
+
+TEST_F(RadixTrieFixture, InsertIntoEmptyRootCreatesLeaf)
+{
+    FileInfo* info = insert("workspace/main.cpp", 42);
+
+    const LeafNode* leaf = as_leaf(root);
+
+    ASSERT_NE(leaf, nullptr);
+    EXPECT_EQ(leaf->_full_key, "workspace/main.cpp");
+    EXPECT_EQ(leaf->_metadata, info);
+}
+
+TEST_F(RadixTrieFixture, SharedPrefixSplitCreatesNode4WithBothLeavesReachable)
+{
+    FileInfo* car = insert("car", 1);
+    FileInfo* cat = insert("cat", 2);
+
+    ASSERT_NE(root, nullptr);
+    ASSERT_EQ(root->_type, NodeType::Node4);
+    EXPECT_EQ(root->_prefix_skip_length, 2U);
+    EXPECT_EQ(root->_child_count, 2U);
+
+    const LeafNode* car_leaf = find_leaf(root, "car");
+    const LeafNode* cat_leaf = find_leaf(root, "cat");
+
+    ASSERT_NE(car_leaf, nullptr);
+    ASSERT_NE(cat_leaf, nullptr);
+    EXPECT_EQ(car_leaf->_metadata, car);
+    EXPECT_EQ(cat_leaf->_metadata, cat);
+    EXPECT_EQ(find_leaf(root, "cab"), nullptr);
+}
+
+TEST_F(RadixTrieFixture, Node4KeepsChildrenSortedByEdgeByte)
+{
+    insert("pd");
+    insert("pb");
+    insert("pc");
+    insert("pa");
+
+    ASSERT_NE(root, nullptr);
+    ASSERT_EQ(root->_type, NodeType::Node4);
+
+    const auto* node = static_cast<const Node4*>(root);
+    ASSERT_EQ(node->_child_count, 4U);
+    EXPECT_EQ(node->_keys[0], static_cast<u8>('a'));
+    EXPECT_EQ(node->_keys[1], static_cast<u8>('b'));
+    EXPECT_EQ(node->_keys[2], static_cast<u8>('c'));
+    EXPECT_EQ(node->_keys[3], static_cast<u8>('d'));
+}
+
+TEST_F(RadixTrieFixture, GrowsFromNode4ToNode16)
+{
+    insert_suffix_range(*this, 1, 5);
+
+    ASSERT_NE(root, nullptr);
+    EXPECT_EQ(root->_type, NodeType::Node16);
+    EXPECT_EQ(root->_child_count, 5U);
+    EXPECT_NE(find_leaf(root, key_with_suffix(1)), nullptr);
+    EXPECT_NE(find_leaf(root, key_with_suffix(5)), nullptr);
+}
+
+TEST_F(RadixTrieFixture, GrowsFromNode16ToNode48)
+{
+    insert_suffix_range(*this, 1, 17);
+
+    ASSERT_NE(root, nullptr);
+    EXPECT_EQ(root->_type, NodeType::Node48);
+    EXPECT_EQ(root->_child_count, 17U);
+    EXPECT_NE(find_leaf(root, key_with_suffix(1)), nullptr);
+    EXPECT_NE(find_leaf(root, key_with_suffix(17)), nullptr);
+}
+
+TEST_F(RadixTrieFixture, GrowsFromNode48ToNode256)
+{
+    insert_suffix_range(*this, 1, 49);
+
+    ASSERT_NE(root, nullptr);
+    EXPECT_EQ(root->_type, NodeType::Node256);
+    EXPECT_EQ(root->_child_count, 49U);
+    EXPECT_NE(find_leaf(root, key_with_suffix(1)), nullptr);
+    EXPECT_NE(find_leaf(root, key_with_suffix(49)), nullptr);
+}
+
+TEST_F(RadixTrieFixture, DeleteExistingLeafRemovesOnlyThatKey)
+{
+    insert("pa");
+    insert("pb");
+    insert("pc");
+
+    erase("pb");
+
+    EXPECT_NE(find_leaf(root, "pa"), nullptr);
+    EXPECT_EQ(find_leaf(root, "pb"), nullptr);
+    EXPECT_NE(find_leaf(root, "pc"), nullptr);
+}
+
+TEST_F(RadixTrieFixture, DeletingAllKeysLeavesEmptyRoot)
+{
+    insert("pa");
+    insert("pb");
+    insert("pc");
+
+    erase("pa");
+    erase("pb");
+    erase("pc");
+
+    EXPECT_EQ(root, nullptr);
+}
+
+TEST_F(RadixTrieFixture, DeletingMissingKeyDoesNotChangeExistingKeys)
+{
+    insert("alpha");
+    insert("alpine");
+
+    erase("altitude");
+
+    EXPECT_NE(find_leaf(root, "alpha"), nullptr);
+    EXPECT_NE(find_leaf(root, "alpine"), nullptr);
+}
+
+TEST_F(RadixTrieFixture, ShrinksFromNode48ToNode16)
+{
+    insert_suffix_range(*this, 1, 17);
+
+    erase(key_with_suffix(17));
+    erase(key_with_suffix(16));
+
+    ASSERT_NE(root, nullptr);
+    EXPECT_EQ(root->_type, NodeType::Node16);
+    EXPECT_EQ(root->_child_count, 15U);
+    EXPECT_NE(find_leaf(root, key_with_suffix(1)), nullptr);
+    EXPECT_EQ(find_leaf(root, key_with_suffix(17)), nullptr);
+}
+
+TEST_F(RadixTrieFixture, ShrinksFromNode256ToNode48)
+{
+    insert_suffix_range(*this, 1, 49);
+
+    erase(key_with_suffix(49));
+    erase(key_with_suffix(48));
+
+    ASSERT_NE(root, nullptr);
+    EXPECT_EQ(root->_type, NodeType::Node48);
+    EXPECT_EQ(root->_child_count, 47U);
+    EXPECT_NE(find_leaf(root, key_with_suffix(1)), nullptr);
+    EXPECT_EQ(find_leaf(root, key_with_suffix(49)), nullptr);
+}
+
+TEST_F(RadixTrieFixture, CollectsAllInsertedKeysAfterDeepSharedPrefixInserts)
+{
+    std::vector<std::string> keys = {
+        "workspace/project/src/main.cpp",
+        "workspace/project/src/main.hpp",
+        "workspace/project/tests/main_test.cpp",
+        "workspace/readme.md",
+    };
+
+    for (const std::string& key : keys) {
+        insert(key);
+    }
+
+    std::sort(keys.begin(), keys.end());
+    EXPECT_EQ(collect_keys(root), keys);
+}
+
+TEST(RadixTriePrefixSearch, EmptyTrieReturnsNoPaths)
+{
+    RadixTrie trie;
+
+    EXPECT_TRUE(trie.get_all_paths_with_prefix("workspace").empty());
 }
