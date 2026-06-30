@@ -94,9 +94,9 @@ namespace pinguqueen::intern
         new_node->_child_count = old_node->_child_count;
         new_node->_prefix_skip_length = old_node->_prefix_skip_length;
 
-        for (u16 key_byte = 0; key_byte < 256; ++key_byte){
+        for (u16 key_byte = 0; key_byte < Node256::FULL; ++key_byte){
             u8 index = old_node->_keys[key_byte];
-            if (index != 48){
+            if (index != Node48::NOTHING){
                 new_node->_children[key_byte] = old_node->_children[index];
             }
         }
@@ -431,9 +431,9 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         }
 
         depth = depth + node->_prefix_skip_length;
-        Node* next = node->find_child(static_cast<u8>(key[depth]));
-        if (next != nullptr) {
-            insert_node(next, key, information, depth + 1);
+        Node** next_slot = node->find_child_slot(static_cast<u8>(key[depth]));
+        if (next_slot != nullptr) {
+            insert_node(*next_slot, key, information, depth + 1);
             delete leaf;
         }
         else {
@@ -466,11 +466,11 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         depth += node->_prefix_skip_length;
         u8 key_byte = static_cast<u8>(key[depth]);
 
-        Node* next = node->find_child(key_byte);
+        Node** next_slot = node->find_child_slot(key_byte);
 
-        if (next != nullptr) {
-            delete_node(next, key, depth + 1);
-            if (next == nullptr) {
+        if (next_slot != nullptr) {
+            delete_node(*next_slot, key, depth + 1);
+            if (*next_slot == nullptr) {
                 remove_child(node, key_byte);
             }
         }

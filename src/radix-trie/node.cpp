@@ -1,7 +1,13 @@
 #include "node.hpp"
+#include <algorithm>
 #include <format>
 #include <emmintrin.h>
 namespace pinguqueen::intern {
+
+    Node48::Node48()
+    {
+        std::fill(_keys, _keys + 256, NOTHING);
+    }
 
     Node4::~Node4()
     {
@@ -40,6 +46,14 @@ namespace pinguqueen::intern {
         return nullptr;
     }
 
+    Node** Node4::find_child_slot(u8 key_byte) noexcept
+    {
+        for (u16 i = 0; i < _child_count; ++i) {
+            if (_keys[i] == key_byte) return &_children[i];
+        }
+        return nullptr;
+    }
+
     Node* Node16::find_child(u8 key_byte) noexcept
     {
 
@@ -59,6 +73,23 @@ namespace pinguqueen::intern {
         return nullptr;
     }
 
+    Node** Node16::find_child_slot(u8 key_byte) noexcept
+    {
+        __m128i key_vector = _mm_set1_epi8(static_cast<char>(key_byte));
+        __m128i node_keys = _mm_loadu_si128(reinterpret_cast<const __m128i*>(_keys));
+        __m128i cmp = _mm_cmpeq_epi8(key_vector, node_keys);
+        u32 mask = static_cast<u32>(_mm_movemask_epi8(cmp));
+
+        if (mask != 0) {
+            u32 index = static_cast<u32>(__builtin_ctz(mask));
+
+            if (index < _child_count) {
+                return &_children[index];
+            }
+        }
+        return nullptr;
+    }
+
 
 
     Node* Node48::find_child(u8 key_byte) noexcept
@@ -70,9 +101,26 @@ namespace pinguqueen::intern {
         return nullptr;
     }
 
+    Node** Node48::find_child_slot(u8 key_byte) noexcept
+    {
+        u8 index = _keys[key_byte];
+        if (index != NOTHING && _children[index] != nullptr) {
+            return &_children[index];
+        }
+        return nullptr;
+    }
+
     Node* Node256::find_child(u8 key_byte) noexcept
     {
         return _children[key_byte];
+    }
+
+    Node** Node256::find_child_slot(u8 key_byte) noexcept
+    {
+        if (_children[key_byte] == nullptr) {
+            return nullptr;
+        }
+        return &_children[key_byte];
     }
 
     //!DANGEROUS, NO GROW IF FULL

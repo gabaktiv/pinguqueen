@@ -39,6 +39,7 @@ namespace pinguqueen::intern {
         [[nodiscard]] virtual bool is_too_empty() const noexcept = 0;
 
         [[nodiscard]] virtual Node* find_child(u8 key_byte) noexcept = 0;
+        [[nodiscard]] virtual Node** find_child_slot(u8 key_byte) noexcept = 0;
 
     };
 
@@ -54,6 +55,7 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ assert(false); return false; }
 
         [[nodiscard]] Node* find_child(u8) noexcept override { return nullptr; }
+        [[nodiscard]] Node** find_child_slot(u8) noexcept override { return nullptr; }
 
     };
 
@@ -85,6 +87,7 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == NO_CHILD; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
+        [[nodiscard]] Node** find_child_slot(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
         //!DANGEROUS, CRASHES IF NO CHILD AVAILABLE. IT ONLY REMOVES CORRESPONDING POINTER / NO DESTRUKTOR CALLED
         void remove_pure(u8 key) noexcept;
@@ -112,6 +115,7 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
+        [[nodiscard]] Node** find_child_slot(u8 key_byte) noexcept override;
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
         //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVES POINTER / NO DELETION
         void remove_pure(u8 key) noexcept;
@@ -130,7 +134,7 @@ namespace pinguqueen::intern {
         u8 _keys[256]{};
         Node* _children[48]{};
 
-        Node48() = default;
+        Node48();
         ~Node48() override;
         Node48(const Node48&) = delete;
         Node48& operator=(const Node48&) = delete;
@@ -141,6 +145,7 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
+        [[nodiscard]] Node** find_child_slot(u8 key_byte) noexcept override;
 
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
         //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVES POINTER / NO DELETION
@@ -169,6 +174,7 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
+        [[nodiscard]] Node** find_child_slot(u8 key_byte) noexcept override;
 
         void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
         //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVES POINTER / NO DELETION
