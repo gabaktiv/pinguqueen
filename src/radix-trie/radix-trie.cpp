@@ -378,6 +378,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
 
         if (node == nullptr){
             replace(node, leaf);
+            //delete node;
             return;
         }
 
@@ -403,6 +404,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
                 add_child(newNode, static_cast<u8>(key2[depth]), node);
             }
             replace(node, newNode);
+            //delete node;
             return;
         }
 
@@ -420,10 +422,10 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
             if (depth+p < valid_key.length()) {
                 add_child(newNode, static_cast<u8>(valid_key[depth + p]), node);
             }
-                newNode->_prefix_skip_length = p;
+            newNode->_prefix_skip_length = p;
             node->_prefix_skip_length -= (p + 1);
             replace(node, newNode);
-            delete node;
+            //delete node;
             return;
 
         }

@@ -43,7 +43,6 @@ namespace pinguqueen::intern {
     Node* Node16::find_child(u8 key_byte) noexcept
     {
 
-        //KP WAS HIER PASSIERT, DAS IST GEMINI-ZEUG, ABER ENTSPRICHT ANSCHEINEND DEM PAPER
         __m128i key_vector = _mm_set1_epi8(static_cast<char>(key_byte));
         __m128i node_keys = _mm_loadu_si128(reinterpret_cast<const __m128i*>(_keys));
         __m128i cmp = _mm_cmpeq_epi8(key_vector, node_keys);
