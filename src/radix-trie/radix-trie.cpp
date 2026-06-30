@@ -27,13 +27,6 @@ namespace pinguqueen::intern
         return node->is_leaf();
     }
 
-    std::string_view RadixTrie::load_key(const Node* node) noexcept
-    {
-        assert(node != nullptr && node->_type == NodeType::LeafNode);
-        const auto* leaf = static_cast<const LeafNode*>(node);
-        return leaf->_full_key;
-    }
-
     std::string_view RadixTrie::load_representative_key(const Node* node) noexcept
     {
         assert(node != nullptr);
@@ -71,7 +64,8 @@ namespace pinguqueen::intern
             assert(curr != nullptr);
         }
 
-        return load_key(curr);
+        assert(curr->_type == NodeType::LeafNode);
+        return static_cast<const LeafNode*>(curr)->_full_key;
     }
 
     void RadixTrie::grow_4_to_16(Node*& parent_slot) noexcept {
@@ -426,7 +420,8 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
             Node* newNode = new Node4();
             newNode->_type = NodeType::Node4;
 
-            std::string_view key2 = load_key(node);
+            assert(node->_type == NodeType::LeafNode);
+            std::string_view key2 = static_cast<const LeafNode*>(node)->_full_key;
             u32 i = depth;
             while (i < key.length() && i < key2.length() && key[i] == key2[i]){
                 i++;
