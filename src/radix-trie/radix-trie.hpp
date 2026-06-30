@@ -20,6 +20,7 @@ namespace pinguqueen::intern
         static void replace(Node*& dest, Node* src) noexcept;
         [[nodiscard]] static bool is_leaf(const Node* node) noexcept;
         [[nodiscard]] static std::string_view load_key(const Node* node) noexcept;
+        [[nodiscard]] static std::string_view load_representative_key(const Node* node) noexcept;
 
         static void grow_4_to_16(Node*& parent_slot) noexcept;
         static void grow_16_to_48(Node*& parent_slot) noexcept;
