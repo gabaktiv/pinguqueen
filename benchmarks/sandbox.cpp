@@ -9,33 +9,17 @@
 #include <vector>
 
 struct PreparedTrie {
-    pinguqueen::intern::Node* root = nullptr;
+    std::unique_ptr<pinguqueen::intern::Node> root = nullptr;
     std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
 
     PreparedTrie() = default;
-
-    ~PreparedTrie() {
-        delete root;
-    }
+    ~PreparedTrie() = default;
 
     PreparedTrie(PreparedTrie const&) = delete;
     PreparedTrie& operator=(PreparedTrie const&) = delete;
 
-    PreparedTrie(PreparedTrie&& other) noexcept
-        : root(other.root),
-          metadata(std::move(other.metadata)) {
-        other.root = nullptr;
-    }
-
-    PreparedTrie& operator=(PreparedTrie&& other) noexcept {
-        if (this != &other) {
-            delete root;
-            root = other.root;
-            metadata = std::move(other.metadata);
-            other.root = nullptr;
-        }
-        return *this;
-    }
+    PreparedTrie(PreparedTrie&& other) noexcept = default;
+    PreparedTrie& operator=(PreparedTrie&& other) noexcept = default;
 };
 
 std::string makeSharedPrefixKey(std::size_t index) {

@@ -1,6 +1,7 @@
 #pragma once
 #include "../global.hpp"
 #include "file-info.hpp"
+#include <memory>
 #include <string>
 
 /*
@@ -39,7 +40,7 @@ namespace pinguqueen::intern {
         [[nodiscard]] virtual bool is_too_empty() const noexcept = 0;
 
         [[nodiscard]] virtual Node* find_child(u8 key_byte) noexcept = 0;
-        [[nodiscard]] virtual Node** find_child_slot(u8 key_byte) noexcept = 0;
+        [[nodiscard]] virtual std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept = 0;
 
     };
 
@@ -55,7 +56,7 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ assert(false); return false; }
 
         [[nodiscard]] Node* find_child(u8) noexcept override { return nullptr; }
-        [[nodiscard]] Node** find_child_slot(u8) noexcept override { return nullptr; }
+        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8) noexcept override { return nullptr; }
 
     };
 
@@ -74,10 +75,10 @@ namespace pinguqueen::intern {
         static constexpr u8 NO_CHILD = 0;
 
         u8 _keys[4]{};
-        Node* _children[4]{};
+        std::unique_ptr<Node> _children[4]{};
 
         Node4() = default;
-        ~Node4() override;
+        ~Node4() override = default;
         Node4(const Node4&) = delete;
         Node4& operator=(const Node4&) = delete;
         Node4(Node4&&) = delete;
@@ -87,9 +88,9 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == NO_CHILD; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
-        [[nodiscard]] Node** find_child_slot(u8 key_byte) noexcept override;
-        void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
-        //!DANGEROUS, CRASHES IF NO CHILD AVAILABLE. IT ONLY REMOVES CORRESPONDING POINTER / NO DESTRUKTOR CALLED
+        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept override;
+        void insert_pure(u8 key, std::unique_ptr<Node> child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
+        //!DANGEROUS, CRASHES IF NO CHILD AVAILABLE. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
         void remove_pure(u8 key) noexcept;
     };
 
@@ -99,13 +100,13 @@ namespace pinguqueen::intern {
     {
     public:
         u8 _keys[16]{};
-        Node* _children[16]{};
+        std::unique_ptr<Node> _children[16]{};
         static constexpr u8 SHRINKING_CHILD_COUNT = 3;
         static constexpr u8 GROW_CHILD_COUNT = 16;
 
 
         Node16() = default;
-        ~Node16() override;
+        ~Node16() override = default;
         Node16(const Node16&) = delete;
         Node16& operator=(const Node16&) = delete;
         Node16(Node16&&) = delete;
@@ -115,9 +116,9 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
-        [[nodiscard]] Node** find_child_slot(u8 key_byte) noexcept override;
-        void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
-        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVES POINTER / NO DELETION
+        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept override;
+        void insert_pure(u8 key, std::unique_ptr<Node> child) noexcept;  //!DANGEROUS, NO GROW IF FULL
+        //!DANGEROUS, NO SHRINKING IF TOO EMPTY. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
         void remove_pure(u8 key) noexcept;
     };
 
@@ -132,10 +133,10 @@ namespace pinguqueen::intern {
         static constexpr u8 GROW_CHILD_COUNT = 48;
 
         u8 _keys[256]{};
-        Node* _children[48]{};
+        std::unique_ptr<Node> _children[48]{};
 
         Node48();
-        ~Node48() override;
+        ~Node48() override = default;
         Node48(const Node48&) = delete;
         Node48& operator=(const Node48&) = delete;
         Node48(Node48&&) = delete;
@@ -145,10 +146,10 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
-        [[nodiscard]] Node** find_child_slot(u8 key_byte) noexcept override;
+        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept override;
 
-        void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW IF FULL
-        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVES POINTER / NO DELETION
+        void insert_pure(u8 key, std::unique_ptr<Node> child) noexcept;  //!DANGEROUS, NO GROW IF FULL
+        //!DANGEROUS, NO SHRINKING IF TOO EMPTY. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
         void remove_pure(u8 key) noexcept;
     };
 
@@ -157,14 +158,14 @@ namespace pinguqueen::intern {
     struct Node256 : Node
     {
     public:
-        Node* _children[256]{};
+        std::unique_ptr<Node> _children[256]{};
         static constexpr u16 FULL = 256;
         static constexpr u8 SHRINKING_CHILD_COUNT = 47;
 
 
 
         Node256() = default;
-        ~Node256() override;
+        ~Node256() override = default;
         Node256(const Node256&) = delete;
         Node256& operator=(const Node256&) = delete;
         Node256(Node256&&) = delete;
@@ -174,10 +175,10 @@ namespace pinguqueen::intern {
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
-        [[nodiscard]] Node** find_child_slot(u8 key_byte) noexcept override;
+        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept override;
 
-        void insert_pure(u8 key, Node* child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
-        //!DANGEROUS, NO SHRINKING IF TOO EMPTY AND ONLY REMOVES POINTER / NO DELETION
+        void insert_pure(u8 key, std::unique_ptr<Node> child) noexcept;  //!DANGEROUS, NO GROW OF NODE IF FULL
+        //!DANGEROUS, NO SHRINKING IF TOO EMPTY. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
         void remove_pure(u8 key) noexcept;
     };
 
