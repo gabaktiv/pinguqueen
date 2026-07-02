@@ -31,7 +31,7 @@ namespace {
     };
 
     struct PreparedTrie {
-        std::unique_ptr<pinguqueen::intern::Node> root = nullptr;
+        pinguqueen::intern::RadixTrie trie;
         std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
 
         PreparedTrie() = default;
@@ -136,23 +136,21 @@ namespace {
     [[nodiscard]] PreparedTrie buildTrie(
         TrieInput const& input
     ) {
-        PreparedTrie trie;
-        trie.metadata.reserve(input.keys.size());
+        PreparedTrie pt;
+        pt.metadata.reserve(input.keys.size());
 
         for (std::size_t index = 0; index < input.keys.size(); ++index) {
-            trie.metadata.push_back(makeFileInfo(
+            pt.metadata.push_back(makeFileInfo(
                 input.keys[index],
                 static_cast<pinguqueen::u32>(index + 1)
             ));
-            pinguqueen::intern::RadixTrie::insert_node(
-                trie.root,
+            pt.trie.insert(
                 input.keys[index],
-                trie.metadata.back().get(),
-                0
+                pt.metadata.back().get()
             );
         }
 
-        return trie;
+        return pt;
     }
 
     [[nodiscard]] pinguqueen::intern::LeafNode const* asLeaf(
@@ -194,18 +192,16 @@ namespace {
         TrieInput const& input
     ) {
         for (auto _: state) {
-            std::unique_ptr<pinguqueen::intern::Node> root = nullptr;
+            pinguqueen::intern::RadixTrie trie;
 
             for (std::size_t index = 0; index < input.keys.size(); ++index) {
-                pinguqueen::intern::RadixTrie::insert_node(
-                    root,
+                trie.insert(
                     input.keys[index],
-                    input.metadata[index].get(),
-                    0
+                    input.metadata[index].get()
                 );
             }
 
-            benchmark::DoNotOptimize(root.get());
+            benchmark::DoNotOptimize(trie.root_node());
             benchmark::ClobberMemory();
 
         }
@@ -220,11 +216,11 @@ namespace {
         benchmark::State& state,
         TrieInput const& input
     ) {
-        PreparedTrie trie = buildTrie(input);
+        PreparedTrie pt = buildTrie(input);
 
         for (auto _: state) {
             for (std::string const& key : input.keys) {
-                pinguqueen::intern::LeafNode const* leaf = findLeaf(trie.root.get(), key);
+                pinguqueen::intern::LeafNode const* leaf = findLeaf(pt.trie.root_node(), key);
                 benchmark::DoNotOptimize(leaf);
             }
 
@@ -242,11 +238,11 @@ namespace {
         unsigned char key_count
     ) {
         TrieInput const input = makeAdaptiveNodeInput(key_count);
-        PreparedTrie trie = buildTrie(input);
+        PreparedTrie pt = buildTrie(input);
 
         for (auto _: state) {
             for (unsigned char suffix = 1; suffix <= key_count; ++suffix) {
-                pinguqueen::intern::Node* child = trie.root->find_child(suffix);
+                pinguqueen::intern::Node* child = pt.trie.root_node()->find_child(suffix);
                 benchmark::DoNotOptimize(child);
             }
 
@@ -265,14 +261,14 @@ namespace {
     ) {
         for (auto _: state) {
             state.PauseTiming();
-            PreparedTrie trie = buildTrie(input);
+            PreparedTrie pt = buildTrie(input);
             state.ResumeTiming();
 
             for (std::string const& key : input.keys) {
-                pinguqueen::intern::RadixTrie::delete_node(trie.root, key, 0);
+                pt.trie.remove(key);
             }
 
-            benchmark::DoNotOptimize(trie.root.get());
+            benchmark::DoNotOptimize(pt.trie.root_node());
             benchmark::ClobberMemory();
         }
 

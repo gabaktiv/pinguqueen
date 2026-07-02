@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <format>
 #include <emmintrin.h>
+#include <limits>
 #include <utility>
 namespace pinguqueen::intern {
 

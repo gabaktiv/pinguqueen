@@ -13,6 +13,8 @@ namespace pinguqueen::intern
 {
     class RadixTrie
     {
+        static constexpr char TERMINAL = '\0';
+
         using Self = RadixTrie;
         std::unique_ptr<Node> _root = nullptr;
 
@@ -32,18 +34,21 @@ namespace pinguqueen::intern
         [[nodiscard]] static u32 check_prefix(const Node* node, std::string_view key, u32 depth) noexcept;
         [[nodiscard]] LeafNode* find_leaf_node(std::string_view key) noexcept;
         static void collect_all_leaves(Node* node, std::vector<std::string>& results);
+        static void insert_node(std::unique_ptr<Node>& node, std::string_view key, FileInfo* information, u32 depth);
 
     public:
         RadixTrie() = default;
         ~RadixTrie() = default;
         RadixTrie(const RadixTrie&) = delete;
         RadixTrie& operator=(const RadixTrie&) = delete;
-        RadixTrie(RadixTrie&&) = delete;
+        RadixTrie(RadixTrie&&) = default;
         RadixTrie& operator=(RadixTrie&&) = delete;
 
-        static void insert_node(std::unique_ptr<Node>& node, std::string_view key, FileInfo* information, u32 depth);
         static void delete_node (std::unique_ptr<Node>& node, std::string_view key, u32 depth) noexcept;
-        [[nodiscard]] FileInfo* search(std::string_view key) noexcept;
+        void insert( std::string key, FileInfo* value) noexcept;
+        void remove(std::string key) noexcept;
+        [[nodiscard]] Node* root_node() noexcept { return _root.get(); }
+        [[nodiscard]] FileInfo* search(std::string key) noexcept;
 
         //nicht dem Paper entsprechend. Diese Funktion gibt alle Suchelemente zurück
 

@@ -17,7 +17,7 @@ using namespace pinguqueen;
 using namespace pinguqueen::intern;
 
 struct RadixTrieFixture : testing::Test {
-    std::unique_ptr<Node> root = nullptr;
+    RadixTrie trie;
     std::vector<std::unique_ptr<FileInfo>> metadata;
 
     FileInfo* make_file(std::string name, u32 size = 1)
@@ -34,13 +34,13 @@ struct RadixTrieFixture : testing::Test {
     FileInfo* insert(std::string_view key, u32 size = 1)
     {
         FileInfo* info = make_file(std::string(key), size);
-        RadixTrie::insert_node(root, key, info, 0);
+        trie.insert(std::string(key), info);
         return info;
     }
 
-    void erase(std::string_view key)
+    void erase(std::string key)
     {
-        RadixTrie::delete_node(root, key, 0);
+        trie.remove(key);
     }
 };
 
@@ -62,20 +62,23 @@ const LeafNode* as_leaf(const Node* node)
 
 const LeafNode* find_leaf(Node* root, std::string_view key)
 {
+    std::string search_key(key);
+    search_key += '\0';
+
     Node* current = root;
     u32 depth = 0;
 
     while (current != nullptr) {
         if (const LeafNode* leaf = as_leaf(current)) {
-            return leaf->_full_key == key ? leaf : nullptr;
+            return leaf->_full_key == search_key ? leaf : nullptr;
         }
 
         depth += current->_prefix_skip_length;
-        if (depth >= key.size()) {
+        if (depth >= search_key.size()) {
             return nullptr;
         }
 
-        current = current->find_child(static_cast<u8>(key[depth]));
+        current = current->find_child(static_cast<u8>(search_key[depth]));
         ++depth;
     }
 
@@ -125,7 +128,11 @@ std::vector<std::string> collect_keys(Node* root)
         stack.pop_back();
 
         if (const LeafNode* leaf = as_leaf(current)) {
-            keys.push_back(leaf->_full_key);
+            std::string full_key(leaf->_full_key);
+            if (!full_key.empty() && full_key.back() == '\0') {
+                full_key.pop_back();
+            }
+            keys.push_back(std::move(full_key));
             continue;
         }
 
@@ -169,10 +176,10 @@ TEST_F(RadixTrieFixture, InsertIntoEmptyRootCreatesLeaf)
 {
     FileInfo* info = insert("workspace/main.cpp", 42);
 
-    const LeafNode* leaf = as_leaf(root.get());
+    const LeafNode* leaf = as_leaf(trie.root_node());
 
     ASSERT_NE(leaf, nullptr);
-    EXPECT_EQ(leaf->_full_key, "workspace/main.cpp");
+    EXPECT_EQ(leaf->_full_key, std::string("workspace/main.cpp") + '\0');
     EXPECT_EQ(leaf->_metadata, info);
 }
 
@@ -181,19 +188,19 @@ TEST_F(RadixTrieFixture, SharedPrefixSplitCreatesNode4WithBothLeavesReachable)
     FileInfo* car = insert("car", 1);
     FileInfo* cat = insert("cat", 2);
 
-    ASSERT_NE(root, nullptr);
-    ASSERT_EQ(root->_type, NodeType::Node4);
-    EXPECT_EQ(root->_prefix_skip_length, 2U);
-    EXPECT_EQ(root->_child_count, 2U);
+    ASSERT_NE(trie.root_node(), nullptr);
+    ASSERT_EQ(trie.root_node()->_type, NodeType::Node4);
+    EXPECT_EQ(trie.root_node()->_prefix_skip_length, 2U);
+    EXPECT_EQ(trie.root_node()->_child_count, 2U);
 
-    const LeafNode* car_leaf = find_leaf(root.get(), "car");
-    const LeafNode* cat_leaf = find_leaf(root.get(), "cat");
+    const LeafNode* car_leaf = find_leaf(trie.root_node(), "car");
+    const LeafNode* cat_leaf = find_leaf(trie.root_node(), "cat");
 
     ASSERT_NE(car_leaf, nullptr);
     ASSERT_NE(cat_leaf, nullptr);
     EXPECT_EQ(car_leaf->_metadata, car);
     EXPECT_EQ(cat_leaf->_metadata, cat);
-    EXPECT_EQ(find_leaf(root.get(), "cab"), nullptr);
+    EXPECT_EQ(find_leaf(trie.root_node(), "cab"), nullptr);
 }
 
 TEST_F(RadixTrieFixture, Node4KeepsChildrenSortedByEdgeByte)
@@ -203,10 +210,10 @@ TEST_F(RadixTrieFixture, Node4KeepsChildrenSortedByEdgeByte)
     insert("pc");
     insert("pa");
 
-    ASSERT_NE(root, nullptr);
-    ASSERT_EQ(root->_type, NodeType::Node4);
+    ASSERT_NE(trie.root_node(), nullptr);
+    ASSERT_EQ(trie.root_node()->_type, NodeType::Node4);
 
-    const auto* node = static_cast<const Node4*>(root.get());
+    const auto* node = static_cast<const Node4*>(trie.root_node());
     ASSERT_EQ(node->_child_count, 4U);
     EXPECT_EQ(node->_keys[0], static_cast<u8>('a'));
     EXPECT_EQ(node->_keys[1], static_cast<u8>('b'));
@@ -218,33 +225,33 @@ TEST_F(RadixTrieFixture, GrowsFromNode4ToNode16)
 {
     insert_suffix_range(*this, 1, 5);
 
-    ASSERT_NE(root, nullptr);
-    EXPECT_EQ(root->_type, NodeType::Node16);
-    EXPECT_EQ(root->_child_count, 5U);
-    EXPECT_NE(find_leaf(root.get(), key_with_suffix(1)), nullptr);
-    EXPECT_NE(find_leaf(root.get(), key_with_suffix(5)), nullptr);
+    ASSERT_NE(trie.root_node(), nullptr);
+    EXPECT_EQ(trie.root_node()->_type, NodeType::Node16);
+    EXPECT_EQ(trie.root_node()->_child_count, 5U);
+    EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(1)), nullptr);
+    EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(5)), nullptr);
 }
 
 TEST_F(RadixTrieFixture, GrowsFromNode16ToNode48)
 {
     insert_suffix_range(*this, 1, 17);
 
-    ASSERT_NE(root, nullptr);
-    EXPECT_EQ(root->_type, NodeType::Node48);
-    EXPECT_EQ(root->_child_count, 17U);
-    EXPECT_NE(find_leaf(root.get(), key_with_suffix(1)), nullptr);
-    EXPECT_NE(find_leaf(root.get(), key_with_suffix(17)), nullptr);
+    ASSERT_NE(trie.root_node(), nullptr);
+    EXPECT_EQ(trie.root_node()->_type, NodeType::Node48);
+    EXPECT_EQ(trie.root_node()->_child_count, 17U);
+    EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(1)), nullptr);
+    EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(17)), nullptr);
 }
 
 TEST_F(RadixTrieFixture, GrowsFromNode48ToNode256)
 {
     insert_suffix_range(*this, 1, 49);
 
-    ASSERT_NE(root, nullptr);
-    EXPECT_EQ(root->_type, NodeType::Node256);
-    EXPECT_EQ(root->_child_count, 49U);
-    EXPECT_NE(find_leaf(root.get(), key_with_suffix(1)), nullptr);
-    EXPECT_NE(find_leaf(root.get(), key_with_suffix(49)), nullptr);
+    ASSERT_NE(trie.root_node(), nullptr);
+    EXPECT_EQ(trie.root_node()->_type, NodeType::Node256);
+    EXPECT_EQ(trie.root_node()->_child_count, 49U);
+    EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(1)), nullptr);
+    EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(49)), nullptr);
 }
 
 TEST_F(RadixTrieFixture, DeleteExistingLeafRemovesOnlyThatKey)
@@ -255,9 +262,9 @@ TEST_F(RadixTrieFixture, DeleteExistingLeafRemovesOnlyThatKey)
 
     erase("pb");
 
-    EXPECT_NE(find_leaf(root.get(), "pa"), nullptr);
-    EXPECT_EQ(find_leaf(root.get(), "pb"), nullptr);
-    EXPECT_NE(find_leaf(root.get(), "pc"), nullptr);
+    EXPECT_NE(find_leaf(trie.root_node(), "pa"), nullptr);
+    EXPECT_EQ(find_leaf(trie.root_node(), "pb"), nullptr);
+    EXPECT_NE(find_leaf(trie.root_node(), "pc"), nullptr);
 }
 
 TEST_F(RadixTrieFixture, DeletingAllKeysLeavesEmptyRoot)
@@ -270,7 +277,7 @@ TEST_F(RadixTrieFixture, DeletingAllKeysLeavesEmptyRoot)
     erase("pb");
     erase("pc");
 
-    EXPECT_EQ(root, nullptr);
+    EXPECT_EQ(trie.root_node(), nullptr);
 }
 
 TEST_F(RadixTrieFixture, DeletingMissingKeyDoesNotChangeExistingKeys)
@@ -280,8 +287,8 @@ TEST_F(RadixTrieFixture, DeletingMissingKeyDoesNotChangeExistingKeys)
 
     erase("altitude");
 
-    EXPECT_NE(find_leaf(root.get(), "alpha"), nullptr);
-    EXPECT_NE(find_leaf(root.get(), "alpine"), nullptr);
+    EXPECT_NE(find_leaf(trie.root_node(), "alpha"), nullptr);
+    EXPECT_NE(find_leaf(trie.root_node(), "alpine"), nullptr);
 }
 
 TEST_F(RadixTrieFixture, ShrinksFromNode48ToNode16)
@@ -291,11 +298,11 @@ TEST_F(RadixTrieFixture, ShrinksFromNode48ToNode16)
     erase(key_with_suffix(17));
     erase(key_with_suffix(16));
 
-    ASSERT_NE(root, nullptr);
-    EXPECT_EQ(root->_type, NodeType::Node16);
-    EXPECT_EQ(root->_child_count, 15U);
-    EXPECT_NE(find_leaf(root.get(), key_with_suffix(1)), nullptr);
-    EXPECT_EQ(find_leaf(root.get(), key_with_suffix(17)), nullptr);
+    ASSERT_NE(trie.root_node(), nullptr);
+    EXPECT_EQ(trie.root_node()->_type, NodeType::Node16);
+    EXPECT_EQ(trie.root_node()->_child_count, 15U);
+    EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(1)), nullptr);
+    EXPECT_EQ(find_leaf(trie.root_node(), key_with_suffix(17)), nullptr);
 }
 
 TEST_F(RadixTrieFixture, ShrinksFromNode256ToNode48)
@@ -305,11 +312,11 @@ TEST_F(RadixTrieFixture, ShrinksFromNode256ToNode48)
     erase(key_with_suffix(49));
     erase(key_with_suffix(48));
 
-    ASSERT_NE(root, nullptr);
-    EXPECT_EQ(root->_type, NodeType::Node48);
-    EXPECT_EQ(root->_child_count, 47U);
-    EXPECT_NE(find_leaf(root.get(), key_with_suffix(1)), nullptr);
-    EXPECT_EQ(find_leaf(root.get(), key_with_suffix(49)), nullptr);
+    ASSERT_NE(trie.root_node(), nullptr);
+    EXPECT_EQ(trie.root_node()->_type, NodeType::Node48);
+    EXPECT_EQ(trie.root_node()->_child_count, 47U);
+    EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(1)), nullptr);
+    EXPECT_EQ(find_leaf(trie.root_node(), key_with_suffix(49)), nullptr);
 }
 
 TEST_F(RadixTrieFixture, CollectsAllInsertedKeysAfterDeepSharedPrefixInserts)
@@ -326,7 +333,7 @@ TEST_F(RadixTrieFixture, CollectsAllInsertedKeysAfterDeepSharedPrefixInserts)
     }
 
     std::sort(keys.begin(), keys.end());
-    EXPECT_EQ(collect_keys(root.get()), keys);
+    EXPECT_EQ(collect_keys(trie.root_node()), keys);
 }
 
 TEST_F(RadixTrieFixture, DuplicateInsertKeepsKeyReachableExactlyOnce)
@@ -334,11 +341,11 @@ TEST_F(RadixTrieFixture, DuplicateInsertKeepsKeyReachableExactlyOnce)
     FileInfo* first = insert("workspace/project/file.cpp", 1);
     FileInfo* second = insert("workspace/project/file.cpp", 2);
 
-    const LeafNode* leaf = find_leaf(root.get(), "workspace/project/file.cpp");
+    const LeafNode* leaf = find_leaf(trie.root_node(), "workspace/project/file.cpp");
 
     ASSERT_NE(leaf, nullptr);
     EXPECT_TRUE(leaf->_metadata == first || leaf->_metadata == second);
-    expect_only_keys(root.get(), {"workspace/project/file.cpp"});
+    expect_only_keys(trie.root_node(), {"workspace/project/file.cpp"});
 }
 
 TEST_F(RadixTrieFixture, RepeatedDuplicateInsertsDoNotDestroyNeighborKeys)
@@ -350,11 +357,11 @@ TEST_F(RadixTrieFixture, RepeatedDuplicateInsertsDoNotDestroyNeighborKeys)
         insert("workspace/project/file.cpp", 100 + i);
     }
 
-    expect_only_keys(root.get(), {
+    expect_only_keys(trie.root_node(), {
         "workspace/project/file.cpp",
         "workspace/project/file.hpp",
     });
-    expect_present(root.get(), {
+    expect_present(trie.root_node(), {
         "workspace/project/file.cpp",
         "workspace/project/file.hpp",
     });
@@ -365,7 +372,7 @@ TEST_F(RadixTrieFixture, InsertingShorterKeyThatIsPrefixOfExistingKeyKeepsBoth)
     insert("workspace/project/src/main.cpp", 1);
     insert("workspace/project/src", 2);
 
-    expect_only_keys(root.get(), {
+    expect_only_keys(trie.root_node(), {
         "workspace/project/src",
         "workspace/project/src/main.cpp",
     });
@@ -376,7 +383,7 @@ TEST_F(RadixTrieFixture, InsertingLongerKeyBelowExistingPrefixKeepsBoth)
     insert("workspace/project/src", 1);
     insert("workspace/project/src/main.cpp", 2);
 
-    expect_only_keys(root.get(), {
+    expect_only_keys(trie.root_node(), {
         "workspace/project/src",
         "workspace/project/src/main.cpp",
     });
@@ -398,7 +405,7 @@ TEST_F(RadixTrieFixture, PrefixFamilySurvivesMixedInsertionOrder)
         insert(key);
     }
 
-    expect_only_keys(root.get(), keys);
+    expect_only_keys(trie.root_node(), keys);
 }
 
 TEST_F(RadixTrieFixture, DeleteKeyThatIsPrefixOfAnotherRemovesOnlyExactKey)
@@ -409,11 +416,11 @@ TEST_F(RadixTrieFixture, DeleteKeyThatIsPrefixOfAnotherRemovesOnlyExactKey)
 
     erase("workspace");
 
-    expect_only_keys(root.get(), {
+    expect_only_keys(trie.root_node(), {
         "workspace/project",
         "workspace/project/file.cpp",
     });
-    expect_absent(root.get(), {"workspace"});
+    expect_absent(trie.root_node(), {"workspace"});
 }
 
 TEST_F(RadixTrieFixture, DeleteLongerMissingKeyBelowExistingLeafDoesNotChangeTree)
@@ -431,7 +438,7 @@ TEST_F(RadixTrieFixture, DeleteLongerMissingKeyBelowExistingLeafDoesNotChangeTre
     erase("alpha/missing/child");
     erase("alpine/missing/child");
 
-    expect_only_keys(root.get(), keys);
+    expect_only_keys(trie.root_node(), keys);
 }
 
 TEST_F(RadixTrieFixture, DeleteShorterMissingPrefixDoesNotChangeTree)
@@ -450,7 +457,7 @@ TEST_F(RadixTrieFixture, DeleteShorterMissingPrefixDoesNotChangeTree)
     erase("workspace/project");
     erase("workspace/project/src");
 
-    expect_only_keys(root.get(), keys);
+    expect_only_keys(trie.root_node(), keys);
 }
 
 TEST_F(RadixTrieFixture, AllByteSuffixesAreReachableAfterNode256Growth)
@@ -464,10 +471,10 @@ TEST_F(RadixTrieFixture, AllByteSuffixesAreReachableAfterNode256Growth)
         insert(key, suffix);
     }
 
-    ASSERT_NE(root, nullptr);
-    EXPECT_EQ(root->_type, NodeType::Node256);
-    EXPECT_EQ(root->_child_count, 255U);
-    expect_only_keys(root.get(), keys);
+    ASSERT_NE(trie.root_node(), nullptr);
+    EXPECT_EQ(trie.root_node()->_type, NodeType::Node256);
+    EXPECT_EQ(trie.root_node()->_child_count, 255U);
+    expect_only_keys(trie.root_node(), keys);
 }
 
 TEST_F(RadixTrieFixture, DeleteEverySecondByteSuffixPreservesTheRest)
@@ -487,7 +494,7 @@ TEST_F(RadixTrieFixture, DeleteEverySecondByteSuffixPreservesTheRest)
         remaining.push_back(key_with_suffix(static_cast<unsigned char>(suffix)));
     }
 
-    expect_only_keys(root.get(), remaining);
+    expect_only_keys(trie.root_node(), remaining);
 }
 
 TEST_F(RadixTrieFixture, DeleteAllByteSuffixesInReverseLeavesEmptyRoot)
@@ -503,7 +510,7 @@ TEST_F(RadixTrieFixture, DeleteAllByteSuffixesInReverseLeavesEmptyRoot)
         }
     }
 
-    EXPECT_EQ(root, nullptr);
+    EXPECT_EQ(trie.root_node(), nullptr);
 }
 
 TEST_F(RadixTrieFixture, InterleavedInsertDeleteMatchesReferenceSet)
@@ -532,7 +539,7 @@ TEST_F(RadixTrieFixture, InterleavedInsertDeleteMatchesReferenceSet)
     }
 
     std::vector<std::string> expected_keys(expected.begin(), expected.end());
-    expect_only_keys(root.get(), expected_keys);
+    expect_only_keys(trie.root_node(), expected_keys);
 }
 
 TEST_F(RadixTrieFixture, DeepSharedPrefixRepeatedSplitsRemainReachable)
@@ -555,7 +562,7 @@ TEST_F(RadixTrieFixture, DeepSharedPrefixRepeatedSplitsRemainReachable)
         insert(*it);
     }
 
-    expect_only_keys(root.get(), keys);
+    expect_only_keys(trie.root_node(), keys);
 }
 
 TEST(RadixTriePrefixSearch, EmptyTrieReturnsNoPaths)

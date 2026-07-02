@@ -9,7 +9,7 @@
 #include <vector>
 
 struct PreparedTrie {
-    std::unique_ptr<pinguqueen::intern::Node> root = nullptr;
+    pinguqueen::intern::RadixTrie trie;
     std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
 
     PreparedTrie() = default;
@@ -60,24 +60,22 @@ TrieInput makeSharedPrefixInput(std::size_t key_count) {
 }
 
 PreparedTrie buildTrie(TrieInput const& input) {
-    PreparedTrie trie;
-    trie.metadata.reserve(input.keys.size());
+    PreparedTrie pt;
+    pt.metadata.reserve(input.keys.size());
 
     for (std::size_t i = 0; i < input.keys.size(); ++i) {
-        trie.metadata.push_back(makeFileInfo(
+        pt.metadata.push_back(makeFileInfo(
             input.keys[i],
             static_cast<std::uint32_t>(i + 1)
         ));
 
-        pinguqueen::intern::RadixTrie::insert_node(
-            trie.root,
+        pt.trie.insert(
             input.keys[i],
-            trie.metadata.back().get(),
-            0
+            pt.metadata.back().get()
         );
     }
 
-    return trie;
+    return pt;
 }
 
 void run_delete_like_benchmark(std::size_t key_count, std::size_t iterations) {
@@ -85,32 +83,22 @@ void run_delete_like_benchmark(std::size_t key_count, std::size_t iterations) {
 
     for (std::size_t iter = 0; iter < iterations; ++iter) {
 
-        PreparedTrie trie = buildTrie(input);
+        PreparedTrie pt = buildTrie(input);
 
         for (std::size_t i = 0; i < input.keys.size(); ++i) {
-
-
-            pinguqueen::intern::RadixTrie::delete_node(
-                trie.root,
-                input.keys[i],
-                0
-            );
+            pt.trie.remove(input.keys[i]);
         }
-
-
 
         /*
             WICHTIGER TEST:
 
             Wenn das Programm OHNE diese Zeile crasht,
             aber MIT dieser Zeile sauber durchlaeuft,
-            dann zeigt trie.root nach dem letzten delete_node()
+            dann zeigt pt.trie.root_node() nach dem letzten remove()
             wahrscheinlich noch auf freigegebenen Speicher.
 
             Dann liegt der Fehler sehr wahrscheinlich in delete_node().
         */
-
-        //trie.root = nullptr;
 
         std::cout << "Iteration beendet, Destructor kommt jetzt..." << std::endl;
     }

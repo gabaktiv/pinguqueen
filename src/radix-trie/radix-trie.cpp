@@ -392,11 +392,16 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         }
 
         if (node->is_leaf()){
+            auto* existing_leaf = static_cast<LeafNode*>(node.get());
+            if (existing_leaf->_full_key == key) {
+                existing_leaf->_metadata = information;
+                return;
+            }
+
             std::unique_ptr<Node> newNode = std::make_unique<Node4>();
             newNode->_type = NodeType::Node4;
 
-            assert(node->_type == NodeType::LeafNode);
-            std::string_view key2 = static_cast<const LeafNode*>(node.get())->_full_key;
+            std::string_view key2 = existing_leaf->_full_key;
             u32 i = depth;
             while (i < key.length() && i < key2.length() && key[i] == key2[i]){
                 i++;
@@ -483,15 +488,31 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
     }
 
 
-    FileInfo* RadixTrie::search(std::string_view key) noexcept
+    void RadixTrie::insert( std::string key, FileInfo* value) noexcept
     {
+        key += TERMINAL;
+        std::string_view view = key;
+        insert_node(_root, view, value, 0);
+    }
 
-        LeafNode* leaf = find_leaf_node(key);
+    void RadixTrie::remove(std::string key) noexcept
+    {
+        key += TERMINAL;
+        std::string_view view = key;
+        delete_node(_root, view, 0);
+    }
+
+    FileInfo* RadixTrie::search(std::string key) noexcept
+    {
+        key += TERMINAL;
+        std::string_view view = key;
+        LeafNode* leaf = find_leaf_node(view);
         if (leaf != nullptr) {
             return leaf->_metadata;
         }
         return nullptr;
     }
+
 
     void RadixTrie::collect_all_leaves(Node* start_node, std::vector<std::string>& results) {
         if (start_node == nullptr) return;
