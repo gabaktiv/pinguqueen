@@ -20,19 +20,19 @@ shared-prefix paths and deletion from prepared tries.
 #include <string_view>
 #include <vector>
 
-#include "radix-trie/file-info.hpp"
+#include "../src/core/file-info.hpp"
 #include "radix-trie/radix-trie.hpp"
 
 namespace {
 
     struct TrieInput {
         std::vector<std::string> keys;
-        std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
+        std::vector<std::unique_ptr<pinguqueen::core::FileInfo>> metadata;
     };
 
     struct PreparedTrie {
         pinguqueen::intern::RadixTrie trie;
-        std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
+        std::vector<std::unique_ptr<pinguqueen::core::FileInfo>> metadata;
 
         PreparedTrie() = default;
         ~PreparedTrie() = default;
@@ -43,13 +43,13 @@ namespace {
         PreparedTrie& operator=(PreparedTrie&& other) noexcept = default;
     };
 
-    [[nodiscard]] std::unique_ptr<pinguqueen::intern::FileInfo> makeFileInfo(
+    [[nodiscard]] std::unique_ptr<pinguqueen::core::FileInfo> makeFileInfo(
         std::string name,
         pinguqueen::u32 size
     ) {
-        auto info = std::make_unique<pinguqueen::intern::FileInfo>();
-        info->file_name = std::move(name);
-        info->file_size_bytes = size;
+        auto info = std::make_unique<pinguqueen::core::FileInfo>();
+        info->_file_name = std::move(name);
+        info->_file_size_bytes = size;
         return info;
     }
 
@@ -360,7 +360,7 @@ namespace {
     void BM_Lookup_StdMap(benchmark::State& state) {
         auto const input = makeSharedPrefixInput(static_cast<std::size_t>(state.range(0)));
 
-        std::map<std::string, pinguqueen::intern::FileInfo*> standard_map;
+        std::map<std::string, pinguqueen::core::FileInfo*> standard_map;
         for (std::size_t index = 0; index < input.keys.size(); ++index) {
             standard_map[input.keys[index]] = input.metadata[index].get();
         }

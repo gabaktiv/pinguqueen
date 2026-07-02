@@ -377,7 +377,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
 
 
 
-    void RadixTrie::insert_node(std::unique_ptr<Node>& node, std::string_view key, FileInfo* information, u32 depth)
+    void RadixTrie::insert_node(std::unique_ptr<Node>& node, std::string_view key, core::FileInfo* information, u32 depth)
     {
         auto leaf = std::make_unique<LeafNode>();
         leaf->_type = NodeType::LeafNode;
@@ -488,7 +488,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
     }
 
 
-    void RadixTrie::insert( std::string key, FileInfo* value) noexcept
+    void RadixTrie::insert( std::string key, core::FileInfo* value) noexcept
     {
         key += TERMINAL;
         std::string_view view = key;
@@ -502,7 +502,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         delete_node(_root, view, 0);
     }
 
-    FileInfo* RadixTrie::search(std::string key) noexcept
+    core::FileInfo* RadixTrie::search(std::string key) noexcept
     {
         key += TERMINAL;
         std::string_view view = key;

@@ -1,6 +1,6 @@
 #pragma once
 #include "../global.hpp"
-#include "file-info.hpp"
+#include "../core/file-info.hpp"
 #include <memory>
 #include <string>
 
@@ -49,7 +49,7 @@ namespace pinguqueen::intern {
     struct LeafNode :  Node
     {
         std::string _full_key;
-        FileInfo* _metadata = nullptr;
+        core::FileInfo* _metadata = nullptr;
 
         //Blätter sollten keine Informationen über Anzahl der Kinder geben
         [[nodiscard]] bool is_full() const noexcept override { assert(false); return false; }

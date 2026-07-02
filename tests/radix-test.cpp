@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "radix-trie/file-info.hpp"
+#include "../src/core/file-info.hpp"
 #include "radix-trie/node.hpp"
 #include "radix-trie/radix-trie.hpp"
 
@@ -18,22 +18,22 @@ using namespace pinguqueen::intern;
 
 struct RadixTrieFixture : testing::Test {
     RadixTrie trie;
-    std::vector<std::unique_ptr<FileInfo>> metadata;
+    std::vector<std::unique_ptr<core::FileInfo>> metadata;
 
-    FileInfo* make_file(std::string name, u32 size = 1)
+    core::FileInfo* make_file(std::string name, u32 size = 1)
     {
-        auto info = std::make_unique<FileInfo>();
-        info->file_name = std::move(name);
-        info->file_size_bytes = size;
+        auto info = std::make_unique<core::FileInfo>();
+        info->_file_name = std::move(name);
+        info->_file_size_bytes = size;
 
-        FileInfo* raw = info.get();
+        core::FileInfo* raw = info.get();
         metadata.push_back(std::move(info));
         return raw;
     }
 
-    FileInfo* insert(std::string_view key, u32 size = 1)
+    core::FileInfo* insert(std::string_view key, u32 size = 1)
     {
-        FileInfo* info = make_file(std::string(key), size);
+        core::FileInfo* info = make_file(std::string(key), size);
         trie.insert(std::string(key), info);
         return info;
     }
@@ -174,7 +174,7 @@ std::vector<std::string> collect_keys(Node* root)
 
 TEST_F(RadixTrieFixture, InsertIntoEmptyRootCreatesLeaf)
 {
-    FileInfo* info = insert("workspace/main.cpp", 42);
+    core::FileInfo* info = insert("workspace/main.cpp", 42);
 
     const LeafNode* leaf = as_leaf(trie.root_node());
 
@@ -185,8 +185,8 @@ TEST_F(RadixTrieFixture, InsertIntoEmptyRootCreatesLeaf)
 
 TEST_F(RadixTrieFixture, SharedPrefixSplitCreatesNode4WithBothLeavesReachable)
 {
-    FileInfo* car = insert("car", 1);
-    FileInfo* cat = insert("cat", 2);
+    core::FileInfo* car = insert("car", 1);
+    core::FileInfo* cat = insert("cat", 2);
 
     ASSERT_NE(trie.root_node(), nullptr);
     ASSERT_EQ(trie.root_node()->_type, NodeType::Node4);
@@ -338,8 +338,8 @@ TEST_F(RadixTrieFixture, CollectsAllInsertedKeysAfterDeepSharedPrefixInserts)
 
 TEST_F(RadixTrieFixture, DuplicateInsertKeepsKeyReachableExactlyOnce)
 {
-    FileInfo* first = insert("workspace/project/file.cpp", 1);
-    FileInfo* second = insert("workspace/project/file.cpp", 2);
+    core::FileInfo* first = insert("workspace/project/file.cpp", 1);
+    core::FileInfo* second = insert("workspace/project/file.cpp", 2);
 
     const LeafNode* leaf = find_leaf(trie.root_node(), "workspace/project/file.cpp");
 

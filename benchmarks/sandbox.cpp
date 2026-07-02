@@ -1,5 +1,5 @@
 #include "../src/radix-trie/radix-trie.hpp"
-#include "../src/radix-trie/file-info.hpp"
+#include "../src/core/file-info.hpp"
 
 #include <cstdint>
 #include <iostream>
@@ -10,7 +10,7 @@
 
 struct PreparedTrie {
     pinguqueen::intern::RadixTrie trie;
-    std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
+    std::vector<std::unique_ptr<pinguqueen::core::FileInfo>> metadata;
 
     PreparedTrie() = default;
     ~PreparedTrie() = default;
@@ -28,19 +28,19 @@ std::string makeSharedPrefixKey(std::size_t index) {
     return key.str();
 }
 
-std::unique_ptr<pinguqueen::intern::FileInfo> makeFileInfo(
+std::unique_ptr<pinguqueen::core::FileInfo> makeFileInfo(
     std::string name,
     std::uint32_t size
 ) {
-    auto info = std::make_unique<pinguqueen::intern::FileInfo>();
-    info->file_name = std::move(name);
-    info->file_size_bytes = size;
+    auto info = std::make_unique<pinguqueen::core::FileInfo>();
+    info->_file_name = std::move(name);
+    info->_file_size_bytes = size;
     return info;
 }
 
 struct TrieInput {
     std::vector<std::string> keys;
-    std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
+    std::vector<std::unique_ptr<pinguqueen::core::FileInfo>> metadata;
 };
 
 TrieInput makeSharedPrefixInput(std::size_t key_count) {

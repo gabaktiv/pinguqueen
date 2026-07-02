@@ -1,6 +1,6 @@
 #include <iostream>
 #include "global.hpp"
-#include "file-handling/FileExtractor.h"
+#include "file-handling/ArtIndexBuilder.hpp"
 #include "radix-trie/radix-trie.hpp"
 
 
