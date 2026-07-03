@@ -346,7 +346,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
 
         while (curr != nullptr)
         {
-            // Wenn wir ein Blatt erreichen, validieren wir den vollständigen Key
+
             if (curr->is_leaf())
             {
                 auto* leaf = static_cast<LeafNode*>(curr);
@@ -375,7 +375,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         return nullptr;
     }
 
-
+//Insert Function is very similar to the Code of the Paper with more out-of-bounds checking. It works recursiv
 
     void RadixTrie::insert_node(std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
     {
@@ -389,7 +389,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
             replace(node, std::move(leaf));
             return;
         }
-
+        //Lazy Expansion
         if (node->is_leaf()){
             auto* existing_leaf = static_cast<LeafNode*>(node.get());
             if (existing_leaf->_full_key == key) {
@@ -418,7 +418,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
             replace(node, std::move(newNode));
             return;
         }
-
+        //Path Compression
         u32 p = check_prefix(node.get(), key, depth);
         if (p != node->_prefix_skip_length) {
             std::unique_ptr<Node> newNode = std::make_unique<Node4>();
@@ -484,7 +484,14 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         }
     }
 
-
+    /*
+     *  Terminal-Symbol is being used to avoid loss of information. Example: Trie: main.cpp; Adding: main.c . Without the Terminal-Symbol
+     *  the Trie gets splitted into: main.c -> pp . Because information cannot be stored in innernodes, the "pp" leaf will store the Information of
+     *  main.cpp but not main.c . The Information of main.c will be Lost. With the Terminal Symboll it gets changedn into:
+     *  Trie: main.cpp\0; Adding: main.c\0 .
+     *  Split: main.c -> \0    |<- Information of main.c
+     *                -> pp\0  |<- Information of main.cpp
+    */
     void RadixTrie::insert( std::string key, std::unique_ptr<core::FileInfo> value) noexcept
     {
         key += TERMINAL;
@@ -543,8 +550,6 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
             }
             else if (current->_type == NodeType::Node48) {
                 auto* n48 = static_cast<Node48*>(current);
-                // 🏆 KORREKTUR: Node48 hat maximal 48 Kinder-Slots.
-                // Wir müssen die physischen Slots rückwärts prüfen!
                 for (int i = 47; i >= 0; --i) {
                     if (n48->_children[i] != nullptr) {
                         node_stack.push_back(n48->_children[i].get());
