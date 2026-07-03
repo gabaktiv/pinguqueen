@@ -10,7 +10,7 @@ in einer komprimierten Binärdatei speichert und in einem Adaptive-Radix-Trie(ht
 
 **Zusätzlich/Optional** könnten Live-Veränderungen an dem Dateisystem mit inotify abgefangen und in dem Trie angepasst werden.
 
-Dieses Projekt ist eine wilde Mischung aus richtig hässlichem Data-Oriented-Design in den Datenstrukturen und hoffentlich schöner Objektorientierung im File-Handling und Frontend.
+Dieses Projekt ist eine wilde Mischung aus hässlichem Data-Oriented-Design in den Datenstrukturen und hoffentlich schöner Objektorientierung im File-Handling und Frontend.
 
 
 

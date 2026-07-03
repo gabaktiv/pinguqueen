@@ -32,13 +32,13 @@ namespace {
 
     struct PreparedTrie {
         pinguqueen::intern::RadixTrie trie;
-        std::vector<std::unique_ptr<pinguqueen::core::FileInfo>> metadata;
 
         PreparedTrie() = default;
         ~PreparedTrie() = default;
 
         PreparedTrie(PreparedTrie const&) = delete;
         PreparedTrie& operator=(PreparedTrie const&) = delete;
+
         PreparedTrie(PreparedTrie&& other) noexcept = default;
         PreparedTrie& operator=(PreparedTrie&& other) noexcept = default;
     };
@@ -137,16 +137,11 @@ namespace {
         TrieInput const& input
     ) {
         PreparedTrie pt;
-        pt.metadata.reserve(input.keys.size());
 
         for (std::size_t index = 0; index < input.keys.size(); ++index) {
-            pt.metadata.push_back(makeFileInfo(
-                input.keys[index],
-                static_cast<pinguqueen::u32>(index + 1)
-            ));
             pt.trie.insert(
                 input.keys[index],
-                pt.metadata.back().get()
+                makeFileInfo(input.keys[index], static_cast<pinguqueen::u32>(index + 1))
             );
         }
 
@@ -197,7 +192,7 @@ namespace {
             for (std::size_t index = 0; index < input.keys.size(); ++index) {
                 trie.insert(
                     input.keys[index],
-                    input.metadata[index].get()
+                    makeFileInfo(input.keys[index], static_cast<pinguqueen::u32>(index + 1))
                 );
             }
 

@@ -34,9 +34,8 @@ namespace pinguqueen::intern
         [[nodiscard]] static u32 check_prefix(const Node* node, std::string_view key, u32 depth) noexcept;
         [[nodiscard]] LeafNode* find_leaf_node(std::string_view key) noexcept;
         static void collect_all_leaves(Node* node, std::vector<std::string>& results);
-        static void insert_node(std::unique_ptr<Node>& node, std::string_view key, core::FileInfo* information, u32 depth);
+        static void insert_node(std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth);
         static void delete_node (std::unique_ptr<Node>& node, std::string_view key, u32 depth) noexcept;
-
 
 
     public:
@@ -47,7 +46,7 @@ namespace pinguqueen::intern
         RadixTrie(RadixTrie&&) = default;
         RadixTrie& operator=(RadixTrie&&) = delete;
 
-        void insert( std::string key, core::FileInfo* value) noexcept;
+        void insert( std::string key, std::unique_ptr<core::FileInfo> value) noexcept;
         void remove(std::string key) noexcept;
         [[nodiscard]] Node* root_node() noexcept { return _root.get(); }
         [[nodiscard]] core::FileInfo* search(std::string key) noexcept;

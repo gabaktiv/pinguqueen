@@ -18,24 +18,13 @@ using namespace pinguqueen::intern;
 
 struct RadixTrieFixture : testing::Test {
     RadixTrie trie;
-    std::vector<std::unique_ptr<core::FileInfo>> metadata;
-
-    core::FileInfo* make_file(std::string name, u32 size = 1)
-    {
-        auto info = std::make_unique<core::FileInfo>();
-        info->_file_name = std::move(name);
-        info->_file_size_bytes = size;
-
-        core::FileInfo* raw = info.get();
-        metadata.push_back(std::move(info));
-        return raw;
-    }
 
     core::FileInfo* insert(std::string_view key, u32 size = 1)
     {
-        core::FileInfo* info = make_file(std::string(key), size);
-        trie.insert(std::string(key), info);
-        return info;
+        auto info = std::make_unique<core::FileInfo>(std::string(key), size);
+        core::FileInfo* raw = info.get();
+        trie.insert(std::string(key), std::move(info));
+        return raw;
     }
 
     void erase(std::string key)
@@ -180,7 +169,7 @@ TEST_F(RadixTrieFixture, InsertIntoEmptyRootCreatesLeaf)
 
     ASSERT_NE(leaf, nullptr);
     EXPECT_EQ(leaf->_full_key, std::string("workspace/main.cpp") + '\0');
-    EXPECT_EQ(leaf->_metadata, info);
+    EXPECT_EQ(leaf->_metadata.get(), info);
 }
 
 TEST_F(RadixTrieFixture, SharedPrefixSplitCreatesNode4WithBothLeavesReachable)
@@ -198,8 +187,8 @@ TEST_F(RadixTrieFixture, SharedPrefixSplitCreatesNode4WithBothLeavesReachable)
 
     ASSERT_NE(car_leaf, nullptr);
     ASSERT_NE(cat_leaf, nullptr);
-    EXPECT_EQ(car_leaf->_metadata, car);
-    EXPECT_EQ(cat_leaf->_metadata, cat);
+    EXPECT_EQ(car_leaf->_metadata.get(), car);
+    EXPECT_EQ(cat_leaf->_metadata.get(), cat);
     EXPECT_EQ(find_leaf(trie.root_node(), "cab"), nullptr);
 }
 
@@ -344,7 +333,7 @@ TEST_F(RadixTrieFixture, DuplicateInsertKeepsKeyReachableExactlyOnce)
     const LeafNode* leaf = find_leaf(trie.root_node(), "workspace/project/file.cpp");
 
     ASSERT_NE(leaf, nullptr);
-    EXPECT_TRUE(leaf->_metadata == first || leaf->_metadata == second);
+    EXPECT_TRUE(leaf->_metadata.get() == first || leaf->_metadata.get() == second);
     expect_only_keys(trie.root_node(), {"workspace/project/file.cpp"});
 }
 

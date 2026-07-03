@@ -377,24 +377,23 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
 
 
 
-    void RadixTrie::insert_node(std::unique_ptr<Node>& node, std::string_view key, core::FileInfo* information, u32 depth)
+    void RadixTrie::insert_node(std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
     {
         auto leaf = std::make_unique<LeafNode>();
         leaf->_type = NodeType::LeafNode;
         leaf->_isleaf = true;
         leaf->_full_key = std::string(key);
-        leaf->_metadata = information;
+        leaf->_metadata = std::move(information);
 
         if (node == nullptr){
             replace(node, std::move(leaf));
-            //delete node;
             return;
         }
 
         if (node->is_leaf()){
             auto* existing_leaf = static_cast<LeafNode*>(node.get());
             if (existing_leaf->_full_key == key) {
-                existing_leaf->_metadata = information;
+                existing_leaf->_metadata = std::move(leaf->_metadata);
                 return;
             }
 
@@ -417,7 +416,6 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
                 add_child(newNode, static_cast<u8>(key2[depth]), std::move(node));
             }
             replace(node, std::move(newNode));
-            //delete node;
             return;
         }
 
@@ -440,7 +438,6 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
                 old_child->_prefix_skip_length -= (p + 1);
             }
             replace(node, std::move(newNode));
-            //delete node;
             return;
 
         }
@@ -448,7 +445,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         depth = depth + node->_prefix_skip_length;
         std::unique_ptr<Node>* next_slot = node->find_child_slot(static_cast<u8>(key[depth]));
         if (next_slot != nullptr) {
-            insert_node(*next_slot, key, information, depth + 1);
+            insert_node(*next_slot, key, std::move(leaf->_metadata), depth + 1);
         }
         else {
             if (depth < key.length()) {
@@ -488,11 +485,11 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
     }
 
 
-    void RadixTrie::insert( std::string key, core::FileInfo* value) noexcept
+    void RadixTrie::insert( std::string key, std::unique_ptr<core::FileInfo> value) noexcept
     {
         key += TERMINAL;
         std::string_view view = key;
-        insert_node(_root, view, value, 0);
+        insert_node(_root, view, std::move(value), 0);
     }
 
     void RadixTrie::remove(std::string key) noexcept
@@ -508,7 +505,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         std::string_view view = key;
         LeafNode* leaf = find_leaf_node(view);
         if (leaf != nullptr) {
-            return leaf->_metadata;
+            return leaf->_metadata.get();
         }
         return nullptr;
     }

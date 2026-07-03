@@ -10,7 +10,6 @@
 
 struct PreparedTrie {
     pinguqueen::intern::RadixTrie trie;
-    std::vector<std::unique_ptr<pinguqueen::core::FileInfo>> metadata;
 
     PreparedTrie() = default;
     ~PreparedTrie() = default;
@@ -59,24 +58,18 @@ TrieInput makeSharedPrefixInput(std::size_t key_count) {
     return input;
 }
 
-PreparedTrie buildTrie(TrieInput const& input) {
-    PreparedTrie pt;
-    pt.metadata.reserve(input.keys.size());
+    PreparedTrie buildTrie(TrieInput const& input) {
+        PreparedTrie pt;
 
-    for (std::size_t i = 0; i < input.keys.size(); ++i) {
-        pt.metadata.push_back(makeFileInfo(
-            input.keys[i],
-            static_cast<std::uint32_t>(i + 1)
-        ));
+        for (std::size_t i = 0; i < input.keys.size(); ++i) {
+            pt.trie.insert(
+                input.keys[i],
+                makeFileInfo(input.keys[i], static_cast<std::uint32_t>(i + 1))
+            );
+        }
 
-        pt.trie.insert(
-            input.keys[i],
-            pt.metadata.back().get()
-        );
+        return pt;
     }
-
-    return pt;
-}
 
 void run_delete_like_benchmark(std::size_t key_count, std::size_t iterations) {
     TrieInput const input = makeSharedPrefixInput(key_count);

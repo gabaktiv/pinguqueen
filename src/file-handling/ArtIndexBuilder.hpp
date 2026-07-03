@@ -12,8 +12,8 @@ namespace pinguqueen::file {
 
     class ArtIndexHandler {
         std::filesystem::path _root;
-
         intern::RadixTrie _art;
+
         void init();
 
      public:
@@ -24,7 +24,7 @@ namespace pinguqueen::file {
          ArtIndexHandler(ArtIndexHandler&&) = default;
          ArtIndexHandler& operator=(ArtIndexHandler&&) = delete;
 
-
+        std::vector<std::string>
 
 
 
