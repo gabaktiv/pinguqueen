@@ -37,9 +37,17 @@ add_library(trie_core
         src/radix-trie/radix-trie.cpp
         src/radix-trie/node.cpp
 )
+add_library(file_core
+        src/file-handling/ArtIndexBuilder.cpp
 
+
+)
 target_include_directories(trie_core PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+add_executable(main
+        src/main.cpp
 )
 
 # Tests

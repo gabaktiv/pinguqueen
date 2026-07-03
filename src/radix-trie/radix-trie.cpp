@@ -1,23 +1,14 @@
 #include "radix-trie.hpp"
 #include <algorithm>
 #include <cassert>
+#include <utility>
 
 namespace pinguqueen::intern
 {
-    RadixTrie::~RadixTrie()
-    {
-        free_node(_root);
-    }
-
-    void RadixTrie::free_node(Node* root_node)
-    {
-        delete root_node;
-    }
-
-    void RadixTrie::replace(Node*& dest, Node* src) noexcept
+    void RadixTrie::replace(std::unique_ptr<Node>& dest, std::unique_ptr<Node> src) noexcept
     {
         assert(src != nullptr);
-        dest = src;
+        dest = std::move(src);
 
     }
 
@@ -27,18 +18,52 @@ namespace pinguqueen::intern
         return node->is_leaf();
     }
 
-    std::string_view RadixTrie::load_key(const Node* node) noexcept
+    std::string_view RadixTrie::load_representative_key(const Node* node) noexcept
     {
-        assert(node != nullptr && node->_type == NodeType::LeafNode);
-        const auto* leaf = static_cast<const LeafNode*>(node);
-        return leaf->_full_key;
+        assert(node != nullptr);
+
+        const Node* curr = node;
+        while (!curr->is_leaf())
+        {
+            if (curr->_type == NodeType::Node4) {
+                curr = static_cast<const Node4*>(curr)->_children[0].get();
+            }
+            else if (curr->_type == NodeType::Node16) {
+                curr = static_cast<const Node16*>(curr)->_children[0].get();
+            }
+            else if (curr->_type == NodeType::Node48) {
+                const auto* n48 = static_cast<const Node48*>(curr);
+                curr = nullptr;
+                for (const auto& child : n48->_children) {
+                    if (child != nullptr) {
+                        curr = child.get();
+                        break;
+                    }
+                }
+            }
+            else if (curr->_type == NodeType::Node256) {
+                const auto* n256 = static_cast<const Node256*>(curr);
+                curr = nullptr;
+                for (const auto& child : n256->_children) {
+                    if (child != nullptr) {
+                        curr = child.get();
+                        break;
+                    }
+                }
+            }
+
+            assert(curr != nullptr);
+        }
+
+        assert(curr->_type == NodeType::LeafNode);
+        return static_cast<const LeafNode*>(curr)->_full_key;
     }
 
-    void RadixTrie::grow_4_to_16(Node*& parent_slot) noexcept {
+    void RadixTrie::grow_4_to_16(std::unique_ptr<Node>& parent_slot) noexcept {
         assert(parent_slot->_type == NodeType::Node4);
 
-        auto* old_node = static_cast<Node4*>(parent_slot);
-        auto* new_node = new Node16();
+        auto* old_node = static_cast<Node4*>(parent_slot.get());
+        auto new_node = std::make_unique<Node16>();
 
 
         new_node->_prefix_skip_length = old_node->_prefix_skip_length;
@@ -47,23 +72,20 @@ namespace pinguqueen::intern
 
         for (u16 i = 0; i < old_node->_child_count; ++i) {
             new_node->_keys[i] = old_node->_keys[i];
-            new_node->_children[i] = old_node->_children[i];
-
-            old_node->_children[i] = nullptr;
+            new_node->_children[i] = std::move(old_node->_children[i]);
         }
 
         old_node->_child_count = 0;
-        delete old_node;
 
-        parent_slot = new_node;
+        parent_slot = std::move(new_node);
     }
 
-    void RadixTrie::grow_16_to_48(Node*& parent_slot) noexcept
+    void RadixTrie::grow_16_to_48(std::unique_ptr<Node>& parent_slot) noexcept
     {
         assert(parent_slot->_type == NodeType::Node16);
 
-        auto* old_node = static_cast<Node16*>(parent_slot);
-        auto* new_node = new Node48();
+        auto* old_node = static_cast<Node16*>(parent_slot.get());
+        auto new_node = std::make_unique<Node48>();
 
         new_node->_prefix_skip_length = old_node->_prefix_skip_length;
         new_node->_type = NodeType::Node48;
@@ -73,48 +95,44 @@ namespace pinguqueen::intern
 
         for (u8 i = 0; i < Node16::GROW_CHILD_COUNT; ++i){
             u8 key_byte = old_node->_keys[i];
-            new_node->_children[i] = old_node->_children[i];
+            new_node->_children[i] = std::move(old_node->_children[i]);
             new_node->_keys[key_byte] = i;
-            old_node->_children[i] = nullptr;
         }
 
         old_node->_child_count = 0;
-        delete old_node;
 
-        parent_slot = new_node;
+        parent_slot = std::move(new_node);
     }
 
-    void RadixTrie::grow_48_to_256(Node*& parent_slot) noexcept
+    void RadixTrie::grow_48_to_256(std::unique_ptr<Node>& parent_slot) noexcept
     {
         assert(parent_slot->_type == NodeType::Node48);
 
-        auto* old_node = static_cast<Node48*>(parent_slot);
-        auto* new_node = new Node256();
+        auto* old_node = static_cast<Node48*>(parent_slot.get());
+        auto new_node = std::make_unique<Node256>();
         new_node->_type = NodeType::Node256;
         new_node->_child_count = old_node->_child_count;
         new_node->_prefix_skip_length = old_node->_prefix_skip_length;
 
-        for (u16 key_byte = 0; key_byte < 256; ++key_byte){
+        for (u16 key_byte = 0; key_byte < Node256::FULL; ++key_byte){
             u8 index = old_node->_keys[key_byte];
-            if (index != 48){
-                new_node->_children[key_byte] = old_node->_children[index];
+            if (index != Node48::NOTHING){
+                new_node->_children[key_byte] = std::move(old_node->_children[index]);
             }
         }
 
-        std::fill(std::begin(old_node->_children), std::end(old_node->_children), nullptr);
         old_node->_child_count = 0;
-        delete old_node;
 
-        parent_slot = new_node;
+        parent_slot = std::move(new_node);
     }
 
-    void RadixTrie::shrink_256_to_48(Node*& parent_slot) noexcept
+    void RadixTrie::shrink_256_to_48(std::unique_ptr<Node>& parent_slot) noexcept
     {
         assert(parent_slot != nullptr);
         assert(parent_slot->_type == NodeType::Node256);
 
-        auto* old_node = static_cast<Node256*>(parent_slot);
-        auto* new_node = new Node48();
+        auto* old_node = static_cast<Node256*>(parent_slot.get());
+        auto new_node = std::make_unique<Node48>();
 
         new_node->_prefix_skip_length = old_node->_prefix_skip_length;
         new_node->_child_count = old_node->_child_count;
@@ -125,23 +143,21 @@ namespace pinguqueen::intern
         u8 next_free_slot = 0;
         for (u16 key_byte = 0; key_byte < Node256::FULL; ++key_byte) {
             if (old_node->_children[key_byte] != nullptr) {
-                new_node->_children[next_free_slot] = old_node->_children[key_byte];
+                new_node->_children[next_free_slot] = std::move(old_node->_children[key_byte]);
                 new_node->_keys[key_byte] = next_free_slot;
                 ++next_free_slot;
-                old_node->_children[key_byte] = nullptr;
             }
         }
-        delete old_node;
-        parent_slot = new_node;
+        parent_slot = std::move(new_node);
     }
 
-    void RadixTrie::shrink_48_to_16(Node*& parent_slot) noexcept
+    void RadixTrie::shrink_48_to_16(std::unique_ptr<Node>& parent_slot) noexcept
 {
     assert(parent_slot != nullptr);
     assert(parent_slot->_type == NodeType::Node48);
 
-    auto* old_node = static_cast<Node48*>(parent_slot);
-    auto* new_node = new Node16();
+    auto* old_node = static_cast<Node48*>(parent_slot.get());
+    auto new_node = std::make_unique<Node16>();
 
     // Metadaten übertragen
     new_node->_prefix_skip_length = old_node->_prefix_skip_length;
@@ -153,23 +169,21 @@ namespace pinguqueen::intern
         u8 index = old_node->_keys[key_byte];
         if (index != Node48::NOTHING) {
             new_node->_keys[next_free_slot] = static_cast<u8>(key_byte);
-            new_node->_children[next_free_slot] = old_node->_children[index];
+            new_node->_children[next_free_slot] = std::move(old_node->_children[index]);
             ++next_free_slot;
-            old_node->_children[index] = nullptr;
         }
     }
 
-    delete old_node;
-    parent_slot = new_node;
+    parent_slot = std::move(new_node);
 }
 
-void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
+void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
 {
     assert(parent_slot != nullptr);
     assert(parent_slot->_type == NodeType::Node16);
 
-    auto* old_node = static_cast<Node16*>(parent_slot);
-    auto* new_node = new Node4();
+    auto* old_node = static_cast<Node16*>(parent_slot.get());
+    auto new_node = std::make_unique<Node4>();
 
     new_node->_prefix_skip_length = old_node->_prefix_skip_length;
     new_node->_child_count = old_node->_child_count;
@@ -178,16 +192,14 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
    
     for (u16 i = 0; i < old_node->_child_count; ++i) {
         new_node->_keys[i] = old_node->_keys[i];
-        new_node->_children[i] = old_node->_children[i];
-        old_node->_children[i] = nullptr;
+        new_node->_children[i] = std::move(old_node->_children[i]);
     }
 
-    delete old_node;
-    parent_slot = new_node;
+    parent_slot = std::move(new_node);
     }
 
 
-    void RadixTrie::add_child(Node*& parent, u8 key, Node* child) noexcept
+    void RadixTrie::add_child(std::unique_ptr<Node>& parent, u8 key, std::unique_ptr<Node> child) noexcept
     {
         if (parent->is_full()) {
             switch (parent->_type)
@@ -209,22 +221,22 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         {
             case NodeType::Node4:
             {
-                static_cast<Node4*>(parent)->insert_pure(key, child);
+                static_cast<Node4*>(parent.get())->insert_pure(key, std::move(child));
                 break;
             }
             case NodeType::Node16:
             {
-                static_cast<Node16*>(parent)->insert_pure(key, child);
+                static_cast<Node16*>(parent.get())->insert_pure(key, std::move(child));
                 break;
             }
             case NodeType::Node48:
             {
-                static_cast<Node48*>(parent)->insert_pure(key, child);
+                static_cast<Node48*>(parent.get())->insert_pure(key, std::move(child));
                 break;
             }
             case NodeType::Node256:
             {
-                static_cast<Node256*>(parent)->insert_pure(key, child);
+                static_cast<Node256*>(parent.get())->insert_pure(key, std::move(child));
                 break;
             }
             default:
@@ -232,21 +244,21 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         }
     }
 
-    void RadixTrie::remove_child(Node*& parent, u8 key) noexcept
+    void RadixTrie::remove_child(std::unique_ptr<Node>& parent, u8 key) noexcept
 {
     switch (parent->_type)
     {
         case NodeType::Node4:
-            static_cast<Node4*>(parent)->remove_pure(key);
+            static_cast<Node4*>(parent.get())->remove_pure(key);
             break;
         case NodeType::Node16:
-            static_cast<Node16*>(parent)->remove_pure(key);
+            static_cast<Node16*>(parent.get())->remove_pure(key);
             break;
         case NodeType::Node48:
-            static_cast<Node48*>(parent)->remove_pure(key);
+            static_cast<Node48*>(parent.get())->remove_pure(key);
             break;
         case NodeType::Node256:
-            static_cast<Node256*>(parent)->remove_pure(key);
+            static_cast<Node256*>(parent.get())->remove_pure(key);
             break;
         default:
             break;
@@ -274,15 +286,12 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
 
         case NodeType::Node4:
             if (parent->_child_count == 1) {
-                auto* n4 = static_cast<Node4*>(parent);
-                Node* last_child = n4->_children[0];
+                auto* n4 = static_cast<Node4*>(parent.get());
+                std::unique_ptr<Node> last_child = std::move(n4->_children[0]);
 
                 last_child->_prefix_skip_length += n4->_prefix_skip_length + 1;
 
-                n4->_children[0] = nullptr;
-                delete n4;
-
-                parent = last_child;
+                parent = std::move(last_child);
             }
             break;
 
@@ -297,21 +306,21 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         while (!curr->is_leaf())
         {
             if (curr->_type == NodeType::Node4) {
-                curr = static_cast<const Node4*>(curr)->_children[0];
+                curr = static_cast<const Node4*>(curr)->_children[0].get();
             }
             else if (curr->_type == NodeType::Node16) {
-                curr = static_cast<const Node16*>(curr)->_children[0];
+                curr = static_cast<const Node16*>(curr)->_children[0].get();
             }
             else if (curr->_type == NodeType::Node48) {
                 const auto* n48 = static_cast<const Node48*>(curr);
-                for (auto* child : n48->_children) {
-                    if (child) { curr = child; break; }
+                for (const auto& child : n48->_children) {
+                    if (child) { curr = child.get(); break; }
                 }
             }
             else if (curr->_type == NodeType::Node256) {
                 const auto* n256 = static_cast<const Node256*>(curr);
-                for (auto* child : n256->_children) {
-                    if (child) { curr = child; break; }
+                for (const auto& child : n256->_children) {
+                    if (child) { curr = child.get(); break; }
                 }
             }
         }
@@ -332,7 +341,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
 
     LeafNode* RadixTrie::find_leaf_node(std::string_view key) noexcept
     {
-        Node* curr = _root;
+        Node* curr = _root.get();
         u32 depth = 0;
 
         while (curr != nullptr)
@@ -368,25 +377,31 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
 
 
 
-    void RadixTrie::insert_node(Node*& node, std::string_view key, FileInfo* information, u32 depth)
+    void RadixTrie::insert_node(std::unique_ptr<Node>& node, std::string_view key, core::FileInfo* information, u32 depth)
     {
-        auto* leaf = new LeafNode();
+        auto leaf = std::make_unique<LeafNode>();
         leaf->_type = NodeType::LeafNode;
         leaf->_isleaf = true;
         leaf->_full_key = std::string(key);
         leaf->_metadata = information;
 
         if (node == nullptr){
-            replace(node, leaf);
+            replace(node, std::move(leaf));
             //delete node;
             return;
         }
 
         if (node->is_leaf()){
-            Node* newNode = new Node4();
+            auto* existing_leaf = static_cast<LeafNode*>(node.get());
+            if (existing_leaf->_full_key == key) {
+                existing_leaf->_metadata = information;
+                return;
+            }
+
+            std::unique_ptr<Node> newNode = std::make_unique<Node4>();
             newNode->_type = NodeType::Node4;
 
-            std::string_view key2 = load_key(node);
+            std::string_view key2 = existing_leaf->_full_key;
             u32 i = depth;
             while (i < key.length() && i < key2.length() && key[i] == key2[i]){
                 i++;
@@ -396,96 +411,108 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
             depth = depth + newNode->_prefix_skip_length;
             
             if (depth < key.length()) {
-                add_child(newNode, static_cast<u8>(key[depth]), leaf);
-            } else {
-                delete leaf;
+                add_child(newNode, static_cast<u8>(key[depth]), std::move(leaf));
             }
             if (depth < key2.length()) {
-                add_child(newNode, static_cast<u8>(key2[depth]), node);
+                add_child(newNode, static_cast<u8>(key2[depth]), std::move(node));
             }
-            replace(node, newNode);
+            replace(node, std::move(newNode));
             //delete node;
             return;
         }
 
-        u32 p = check_prefix(node, key, depth);
+        u32 p = check_prefix(node.get(), key, depth);
         if (p != node->_prefix_skip_length) {
-            Node* newNode = new Node4;
+            std::unique_ptr<Node> newNode = std::make_unique<Node4>();
 
-            std::string_view valid_key = load_key(node);
+            std::string_view valid_key = load_representative_key(node.get());
 
             if (depth+p < key.length()) {
-                add_child(newNode, static_cast<u8>(key[depth+p]), leaf);
-            } else {
-                delete leaf;
+                add_child(newNode, static_cast<u8>(key[depth+p]), std::move(leaf));
             }
             if (depth+p < valid_key.length()) {
-                add_child(newNode, static_cast<u8>(valid_key[depth + p]), node);
+                add_child(newNode, static_cast<u8>(valid_key[depth + p]), std::move(node));
             }
             newNode->_prefix_skip_length = p;
-            node->_prefix_skip_length -= (p + 1);
-            replace(node, newNode);
+            if (depth + p < valid_key.length()) {
+                Node* old_child = newNode->find_child(static_cast<u8>(valid_key[depth + p]));
+                assert(old_child != nullptr);
+                old_child->_prefix_skip_length -= (p + 1);
+            }
+            replace(node, std::move(newNode));
             //delete node;
             return;
 
         }
 
         depth = depth + node->_prefix_skip_length;
-        Node* next = node->find_child(static_cast<u8>(key[depth]));
-        if (next != nullptr) {
-            insert_node(next, key, information, depth + 1);
-            delete leaf;
+        std::unique_ptr<Node>* next_slot = node->find_child_slot(static_cast<u8>(key[depth]));
+        if (next_slot != nullptr) {
+            insert_node(*next_slot, key, information, depth + 1);
         }
         else {
             if (depth < key.length()) {
-                add_child(node, static_cast<u8>(key[depth]), leaf);
-            } else {
-                delete leaf;
+                add_child(node, static_cast<u8>(key[depth]), std::move(leaf));
             }
         }
 
     }
 
 
-    void RadixTrie::delete_node(Node*& node, std::string_view key, u32 depth) noexcept
+    void RadixTrie::delete_node(std::unique_ptr<Node>& node, std::string_view key, u32 depth) noexcept
     {
         if (node == nullptr) return;
 
         if (node->is_leaf()) {
-            auto* leaf = static_cast<LeafNode*>(node);
+            auto* leaf = static_cast<LeafNode*>(node.get());
             if (leaf->_full_key == key) {
-                delete leaf;
-                node = nullptr;
+                node.reset();
             }
             return;
         }
 
-        u32 p = check_prefix(node, key, depth);
+        u32 p = check_prefix(node.get(), key, depth);
         if (p != node->_prefix_skip_length) return;
 
         depth += node->_prefix_skip_length;
         u8 key_byte = static_cast<u8>(key[depth]);
 
-        Node* next = node->find_child(key_byte);
+        std::unique_ptr<Node>* next_slot = node->find_child_slot(key_byte);
 
-        if (next != nullptr) {
-            delete_node(next, key, depth + 1);
-            if (next == nullptr) {
+        if (next_slot != nullptr) {
+            delete_node(*next_slot, key, depth + 1);
+            if (*next_slot == nullptr) {
                 remove_child(node, key_byte);
             }
         }
     }
 
 
-    FileInfo* RadixTrie::search(std::string_view key) noexcept
+    void RadixTrie::insert( std::string key, core::FileInfo* value) noexcept
     {
+        key += TERMINAL;
+        std::string_view view = key;
+        insert_node(_root, view, value, 0);
+    }
 
-        LeafNode* leaf = find_leaf_node(key);
+    void RadixTrie::remove(std::string key) noexcept
+    {
+        key += TERMINAL;
+        std::string_view view = key;
+        delete_node(_root, view, 0);
+    }
+
+    core::FileInfo* RadixTrie::search(std::string key) noexcept
+    {
+        key += TERMINAL;
+        std::string_view view = key;
+        LeafNode* leaf = find_leaf_node(view);
         if (leaf != nullptr) {
             return leaf->_metadata;
         }
         return nullptr;
     }
+
 
     void RadixTrie::collect_all_leaves(Node* start_node, std::vector<std::string>& results) {
         if (start_node == nullptr) return;
@@ -508,13 +535,13 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
             if (current->_type == NodeType::Node4) {
                 auto* n4 = static_cast<Node4*>(current);
                 for (int i = static_cast<int>(n4->_child_count) - 1; i >= 0; --i) {
-                    node_stack.push_back(n4->_children[i]);
+                    node_stack.push_back(n4->_children[i].get());
                 }
             }
             else if (current->_type == NodeType::Node16) {
                 auto* n16 = static_cast<Node16*>(current);
                 for (int i = static_cast<int>(n16->_child_count) - 1; i >= 0; --i) {
-                    node_stack.push_back(n16->_children[i]);
+                    node_stack.push_back(n16->_children[i].get());
                 }
             }
             else if (current->_type == NodeType::Node48) {
@@ -523,7 +550,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
                 // Wir müssen die physischen Slots rückwärts prüfen!
                 for (int i = 47; i >= 0; --i) {
                     if (n48->_children[i] != nullptr) {
-                        node_stack.push_back(n48->_children[i]);
+                        node_stack.push_back(n48->_children[i].get());
                     }
                 }
             }
@@ -531,7 +558,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
                 auto* n256 = static_cast<Node256*>(current);
                 for (int i = 255; i >= 0; --i) {
                     if (n256->_children[i] != nullptr) {
-                        node_stack.push_back(n256->_children[i]);
+                        node_stack.push_back(n256->_children[i].get());
                     }
                 }
             }
@@ -542,7 +569,7 @@ void RadixTrie::shrink_16_to_4(Node*& parent_slot) noexcept
         std::vector<std::string> results;
         if (_root == nullptr) return results;
 
-        Node* current = _root;
+        Node* current = _root.get();
         u32 depth = 0;
 
         //Navigation to that Node where the prefix matches.

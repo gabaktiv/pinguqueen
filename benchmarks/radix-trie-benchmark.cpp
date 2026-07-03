@@ -20,56 +20,36 @@ shared-prefix paths and deletion from prepared tries.
 #include <string_view>
 #include <vector>
 
-#include "radix-trie/file-info.hpp"
+#include "../src/core/file-info.hpp"
 #include "radix-trie/radix-trie.hpp"
 
 namespace {
 
     struct TrieInput {
         std::vector<std::string> keys;
-        std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
+        std::vector<std::unique_ptr<pinguqueen::core::FileInfo>> metadata;
     };
 
     struct PreparedTrie {
-        pinguqueen::intern::Node* root = nullptr;
-        std::vector<std::unique_ptr<pinguqueen::intern::FileInfo>> metadata;
+        pinguqueen::intern::RadixTrie trie;
+        std::vector<std::unique_ptr<pinguqueen::core::FileInfo>> metadata;
 
         PreparedTrie() = default;
-
-        ~PreparedTrie()
-        {
-            delete root;
-        }
+        ~PreparedTrie() = default;
 
         PreparedTrie(PreparedTrie const&) = delete;
         PreparedTrie& operator=(PreparedTrie const&) = delete;
-        PreparedTrie(PreparedTrie&& other) noexcept
-            : root(other.root)
-            , metadata(std::move(other.metadata))
-        {
-            other.root = nullptr;
-        }
-
-        PreparedTrie& operator=(PreparedTrie&& other) noexcept
-        {
-            if (this != &other) {
-                delete root;
-                root = other.root;
-                metadata = std::move(other.metadata);
-                other.root = nullptr;
-            }
-
-            return *this;
-        }
+        PreparedTrie(PreparedTrie&& other) noexcept = default;
+        PreparedTrie& operator=(PreparedTrie&& other) noexcept = default;
     };
 
-    [[nodiscard]] std::unique_ptr<pinguqueen::intern::FileInfo> makeFileInfo(
+    [[nodiscard]] std::unique_ptr<pinguqueen::core::FileInfo> makeFileInfo(
         std::string name,
         pinguqueen::u32 size
     ) {
-        auto info = std::make_unique<pinguqueen::intern::FileInfo>();
-        info->file_name = std::move(name);
-        info->file_size_bytes = size;
+        auto info = std::make_unique<pinguqueen::core::FileInfo>();
+        info->_file_name = std::move(name);
+        info->_file_size_bytes = size;
         return info;
     }
 
@@ -156,23 +136,21 @@ namespace {
     [[nodiscard]] PreparedTrie buildTrie(
         TrieInput const& input
     ) {
-        PreparedTrie trie;
-        trie.metadata.reserve(input.keys.size());
+        PreparedTrie pt;
+        pt.metadata.reserve(input.keys.size());
 
         for (std::size_t index = 0; index < input.keys.size(); ++index) {
-            trie.metadata.push_back(makeFileInfo(
+            pt.metadata.push_back(makeFileInfo(
                 input.keys[index],
                 static_cast<pinguqueen::u32>(index + 1)
             ));
-            pinguqueen::intern::RadixTrie::insert_node(
-                trie.root,
+            pt.trie.insert(
                 input.keys[index],
-                trie.metadata.back().get(),
-                0
+                pt.metadata.back().get()
             );
         }
 
-        return trie;
+        return pt;
     }
 
     [[nodiscard]] pinguqueen::intern::LeafNode const* asLeaf(
@@ -214,21 +192,18 @@ namespace {
         TrieInput const& input
     ) {
         for (auto _: state) {
-            pinguqueen::intern::Node* root = nullptr;
+            pinguqueen::intern::RadixTrie trie;
 
             for (std::size_t index = 0; index < input.keys.size(); ++index) {
-                pinguqueen::intern::RadixTrie::insert_node(
-                    root,
+                trie.insert(
                     input.keys[index],
-                    input.metadata[index].get(),
-                    0
+                    input.metadata[index].get()
                 );
             }
 
-            benchmark::DoNotOptimize(root);
+            benchmark::DoNotOptimize(trie.root_node());
             benchmark::ClobberMemory();
 
-            delete root;
         }
 
         state.SetItemsProcessed(
@@ -241,11 +216,11 @@ namespace {
         benchmark::State& state,
         TrieInput const& input
     ) {
-        PreparedTrie trie = buildTrie(input);
+        PreparedTrie pt = buildTrie(input);
 
         for (auto _: state) {
             for (std::string const& key : input.keys) {
-                pinguqueen::intern::LeafNode const* leaf = findLeaf(trie.root, key);
+                pinguqueen::intern::LeafNode const* leaf = findLeaf(pt.trie.root_node(), key);
                 benchmark::DoNotOptimize(leaf);
             }
 
@@ -263,11 +238,11 @@ namespace {
         unsigned char key_count
     ) {
         TrieInput const input = makeAdaptiveNodeInput(key_count);
-        PreparedTrie trie = buildTrie(input);
+        PreparedTrie pt = buildTrie(input);
 
         for (auto _: state) {
             for (unsigned char suffix = 1; suffix <= key_count; ++suffix) {
-                pinguqueen::intern::Node* child = trie.root->find_child(suffix);
+                pinguqueen::intern::Node* child = pt.trie.root_node()->find_child(suffix);
                 benchmark::DoNotOptimize(child);
             }
 
@@ -286,14 +261,14 @@ namespace {
     ) {
         for (auto _: state) {
             state.PauseTiming();
-            PreparedTrie trie = buildTrie(input);
+            PreparedTrie pt = buildTrie(input);
             state.ResumeTiming();
 
             for (std::string const& key : input.keys) {
-                pinguqueen::intern::RadixTrie::delete_node(trie.root, key, 0);
+                pt.trie.remove(key);
             }
 
-            benchmark::DoNotOptimize(trie.root);
+            benchmark::DoNotOptimize(pt.trie.root_node());
             benchmark::ClobberMemory();
         }
 
@@ -385,7 +360,7 @@ namespace {
     void BM_Lookup_StdMap(benchmark::State& state) {
         auto const input = makeSharedPrefixInput(static_cast<std::size_t>(state.range(0)));
 
-        std::map<std::string, pinguqueen::intern::FileInfo*> standard_map;
+        std::map<std::string, pinguqueen::core::FileInfo*> standard_map;
         for (std::size_t index = 0; index < input.keys.size(); ++index) {
             standard_map[input.keys[index]] = input.metadata[index].get();
         }
