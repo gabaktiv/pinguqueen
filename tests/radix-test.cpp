@@ -14,7 +14,7 @@
 namespace {
 
 using namespace pinguqueen;
-using namespace pinguqueen::intern;
+using namespace pinguqueen::datastructs;
 
 struct RadixTrieFixture : testing::Test {
     RadixTrie trie;

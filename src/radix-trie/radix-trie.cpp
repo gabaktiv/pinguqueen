@@ -3,7 +3,7 @@
 #include <cassert>
 #include <utility>
 
-namespace pinguqueen::intern
+namespace pinguqueen::datastructs
 {
     void RadixTrie::replace(std::unique_ptr<Node>& dest, std::unique_ptr<Node> src) noexcept
     {
@@ -375,9 +375,10 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         return nullptr;
     }
 
-//Insert Function is very similar to the Code of the Paper with more out-of-bounds checking. It works recursiv
-
-    void RadixTrie::insert_node(std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
+/*Insert Function is very similar to the Code of the Paper with more out-of-bounds checking. It works recursiv and follows the
+ *the optimisitic approach
+*/
+    void RadixTrie::insert_node( std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
     {
         auto leaf = std::make_unique<LeafNode>();
         leaf->_type = NodeType::LeafNode;
@@ -386,7 +387,9 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         leaf->_metadata = std::move(information);
 
         if (node == nullptr){
-            replace(node, std::move(leaf));
+            //replace(node, std::move(leaf));
+            //assert(src != nullptr);
+            node = std::move(leaf);
             return;
         }
         //Lazy Expansion

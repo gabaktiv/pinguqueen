@@ -4,7 +4,7 @@
 #include <emmintrin.h>
 #include <limits>
 #include <utility>
-namespace pinguqueen::intern {
+namespace pinguqueen::datastructs {
 
     Node48::Node48()
     {

@@ -9,7 +9,7 @@
 #include <vector>
 
 struct PreparedTrie {
-    pinguqueen::intern::RadixTrie trie;
+    pinguqueen::datastructs::RadixTrie trie;
 
     PreparedTrie() = default;
     ~PreparedTrie() = default;

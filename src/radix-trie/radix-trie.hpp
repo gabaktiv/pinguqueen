@@ -9,7 +9,7 @@
  * - Viele Funktionen sind static, da sie nur die Nodes verwalten
 */
 
-namespace pinguqueen::intern
+namespace pinguqueen::datastructs
 {
     class RadixTrie
     {
@@ -34,7 +34,7 @@ namespace pinguqueen::intern
         [[nodiscard]] static u32 check_prefix(const Node* node, std::string_view key, u32 depth) noexcept;
         [[nodiscard]] LeafNode* find_leaf_node(std::string_view key) noexcept;
         static void collect_all_leaves(Node* node, std::vector<std::string>& results);
-        static void insert_node(std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth);
+        static void insert_node( std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth);
         static void delete_node (std::unique_ptr<Node>& node, std::string_view key, u32 depth) noexcept;
 
 

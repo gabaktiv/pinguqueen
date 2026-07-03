@@ -50,6 +50,11 @@ add_executable(main
         src/main.cpp
 )
 
+target_link_libraries(main PRIVATE
+        file_core
+        trie_core
+)
+
 # Tests
 enable_testing()
 
@@ -83,6 +88,17 @@ target_link_libraries(sandbox PRIVATE
 )
 
 
+add_executable(art_index_builder_tests
+        tests/art-index-builder-test.cpp
+)
+target_link_libraries(art_index_builder_tests PRIVATE
+        file_core
+        trie_core
+        GTest::gtest_main
+)
+
+gtest_discover_tests(art_index_builder_tests)
+
 target_link_libraries(radix_trie_tests PRIVATE
         trie_core
         GTest::gtest_main
@@ -114,7 +130,17 @@ if (TARGET benchmark::benchmark_main)
                 benchmarks/radix-trie-benchmark.cpp
         )
 
+        add_executable(art_index_builder_benchmarks
+                benchmarks/art-index-builder-benchmark.cpp
+        )
+
         target_link_libraries(radix_trie_benchmarks PRIVATE
+                trie_core
+                benchmark::benchmark_main
+        )
+
+        target_link_libraries(art_index_builder_benchmarks PRIVATE
+                file_core
                 trie_core
                 benchmark::benchmark_main
         )

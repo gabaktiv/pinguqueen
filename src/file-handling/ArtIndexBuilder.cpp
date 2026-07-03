@@ -7,9 +7,9 @@
 namespace pinguqueen::file {
 
 
-    //init function scans your computer where the Programm was called and puts the filenames as keys and the metadata (fileinfo) as values into his ART.
+    //init function scans the computer where the Programm was called and puts the filenames as keys and the metadata (fileinfo) as values into his ART.
 
-    void ArtIndexHandler::init()
+    void ArtIndexBuilder::init()
     {
         namespace fs = std::filesystem;
 
@@ -51,8 +51,13 @@ namespace pinguqueen::file {
                     std::filesystem::path relative = std::filesystem::relative(entry.path(), _root, ec);
 
                     if (!ec) {
-                        _art.insert(relative.generic_string(), std::make_unique<core::FileInfo>(relative.generic_string(), static_cast<u32>(size)));
+                        _art.insert(
+                        relative.generic_string(),
+                        std::make_unique<core::FileInfo>(relative.generic_string(),
+                        static_cast<u32>(size))
+                        );
                     }
+
                 }
             }
 

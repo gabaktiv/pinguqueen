@@ -14,7 +14,7 @@
  *  - Ich habe mich für structs statt Klassen entschieden, da die finale Verwaltung in der RadxiTrie Klasse verwendet wird.
 */
 
-namespace pinguqueen::intern {
+namespace pinguqueen::datastructs {
 
     enum class NodeType : u8 { Node4, Node16, Node48, Node256, LeafNode };
 

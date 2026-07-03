@@ -31,7 +31,7 @@ namespace {
     };
 
     struct PreparedTrie {
-        pinguqueen::intern::RadixTrie trie;
+        pinguqueen::datastructs::RadixTrie trie;
 
         PreparedTrie() = default;
         ~PreparedTrie() = default;
@@ -148,25 +148,25 @@ namespace {
         return pt;
     }
 
-    [[nodiscard]] pinguqueen::intern::LeafNode const* asLeaf(
-        pinguqueen::intern::Node const* node
+    [[nodiscard]] pinguqueen::datastructs::LeafNode const* asLeaf(
+        pinguqueen::datastructs::Node const* node
     ) {
         if (node == nullptr || !node->is_leaf()) {
             return nullptr;
         }
 
-        return static_cast<pinguqueen::intern::LeafNode const*>(node);
+        return static_cast<pinguqueen::datastructs::LeafNode const*>(node);
     }
 
-    [[nodiscard]] pinguqueen::intern::LeafNode const* findLeaf(
-        pinguqueen::intern::Node* root,
+    [[nodiscard]] pinguqueen::datastructs::LeafNode const* findLeaf(
+        pinguqueen::datastructs::Node* root,
         std::string_view key
     ) {
-        pinguqueen::intern::Node* current = root;
+        pinguqueen::datastructs::Node* current = root;
         pinguqueen::u32 depth = 0;
 
         while (current != nullptr) {
-            if (pinguqueen::intern::LeafNode const* leaf = asLeaf(current)) {
+            if (pinguqueen::datastructs::LeafNode const* leaf = asLeaf(current)) {
                 return leaf->_full_key == key ? leaf : nullptr;
             }
 
@@ -187,7 +187,7 @@ namespace {
         TrieInput const& input
     ) {
         for (auto _: state) {
-            pinguqueen::intern::RadixTrie trie;
+            pinguqueen::datastructs::RadixTrie trie;
 
             for (std::size_t index = 0; index < input.keys.size(); ++index) {
                 trie.insert(
@@ -215,7 +215,7 @@ namespace {
 
         for (auto _: state) {
             for (std::string const& key : input.keys) {
-                pinguqueen::intern::LeafNode const* leaf = findLeaf(pt.trie.root_node(), key);
+                pinguqueen::datastructs::LeafNode const* leaf = findLeaf(pt.trie.root_node(), key);
                 benchmark::DoNotOptimize(leaf);
             }
 
@@ -237,7 +237,7 @@ namespace {
 
         for (auto _: state) {
             for (unsigned char suffix = 1; suffix <= key_count; ++suffix) {
-                pinguqueen::intern::Node* child = pt.trie.root_node()->find_child(suffix);
+                pinguqueen::datastructs::Node* child = pt.trie.root_node()->find_child(suffix);
                 benchmark::DoNotOptimize(child);
             }
 
