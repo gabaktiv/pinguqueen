@@ -7,7 +7,7 @@
 namespace pinguqueen::file {
 
 
-    //init function scans your computer where the Programm was called and puts the filenames as keys and the metadata (fileinfo) as values into an ART.
+    //init function scans your computer where the Programm was called and puts the filenames as keys and the metadata (fileinfo) as values into his ART.
 
     void ArtIndexHandler::init()
     {
