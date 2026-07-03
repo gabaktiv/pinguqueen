@@ -46,11 +46,11 @@ target_include_directories(trie_core PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-add_executable(main
+add_executable(pinguqueen
         src/main.cpp
 )
 
-target_link_libraries(main PRIVATE
+target_link_libraries(pinguqueen PRIVATE
         file_core
         trie_core
 )
@@ -147,3 +147,5 @@ if (TARGET benchmark::benchmark_main)
 else()
         message(STATUS "Google Benchmark target not available; radix_trie_benchmarks target disabled")
 endif()
+
+install(TARGETS pinguqueen RUNTIME DESTINATION bin)

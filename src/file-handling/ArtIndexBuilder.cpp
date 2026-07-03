@@ -49,8 +49,8 @@ namespace pinguqueen::file {
                 auto size = entry.file_size(ec);
                 if (!ec) {
                     std::filesystem::path relative = std::filesystem::relative(entry.path(), _root, ec);
-
                     if (!ec) {
+                        relative = relative.lexically_normal();
                         _art.insert(
                         relative.generic_string(),
                         std::make_unique<core::FileInfo>(relative.generic_string(),
