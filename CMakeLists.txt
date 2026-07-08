@@ -39,20 +39,34 @@ add_library(trie_core
 )
 add_library(file_core
         src/file-handling/ArtIndexBuilder.cpp
-
-
+        src/core/file-info.cpp
 )
 target_include_directories(trie_core PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-add_executable(main
-        src/main.cpp
+# FTXUI
+include(FetchContent)
+
+FetchContent_Declare(
+        ftxui
+        GIT_REPOSITORY  https://github.com/ArthurSonzogni/FTXUI.git
+        GIT_TAG         v5.0.0
 )
 
-target_link_libraries(main PRIVATE
+FetchContent_MakeAvailable(ftxui)
+
+add_executable(pinguqueen
+        src/main.cpp
+        src/core/visualiser.cpp
+)
+
+target_link_libraries(pinguqueen PRIVATE
         file_core
         trie_core
+        ftxui::screen
+        ftxui::dom
+        ftxui::component
 )
 
 # Tests
@@ -147,3 +161,5 @@ if (TARGET benchmark::benchmark_main)
 else()
         message(STATUS "Google Benchmark target not available; radix_trie_benchmarks target disabled")
 endif()
+
+install(TARGETS pinguqueen RUNTIME DESTINATION bin)

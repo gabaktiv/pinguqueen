@@ -43,18 +43,33 @@ namespace pinguqueen::file {
 
             ec.clear();
 
+            // don't recurse into hidden directories (.cache, .git, .config, ...)
+            if (entry.is_directory(ec) && !ec) {
+                auto const& fn = entry.path().filename().generic_string();
+                if (!fn.empty() && fn[0] == '.') {
+                    it.disable_recursion_pending();
+                }
+                ec.clear();
+                it.increment(ec);
+                if (ec) ec.clear();
+                continue;
+            }
+            ec.clear();
+
             if (entry.is_regular_file(ec) && !ec) {
                 ec.clear();
 
                 auto size = entry.file_size(ec);
                 if (!ec) {
                     std::filesystem::path relative = std::filesystem::relative(entry.path(), _root, ec);
-
                     if (!ec) {
+                        relative = relative.lexically_normal();
+                        auto last_write = entry.last_write_time(ec);
+                        if (ec) last_write = {};
                         _art.insert(
                         relative.generic_string(),
                         std::make_unique<core::FileInfo>(relative.generic_string(),
-                        static_cast<u32>(size))
+                        static_cast<u32>(size), last_write)
                         );
                     }
 
