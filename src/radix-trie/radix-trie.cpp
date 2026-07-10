@@ -553,9 +553,10 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
             }
             else if (current->_type == NodeType::Node48) {
                 auto* n48 = static_cast<Node48*>(current);
-                for (int i = 47; i >= 0; --i) {
-                    if (n48->_children[i] != nullptr) {
-                        node_stack.push_back(n48->_children[i].get());
+                for (int key_byte = 255; key_byte >= 0; --key_byte) {
+                    u8 index = n48->_keys[key_byte];
+                    if (index != Node48::NOTHING) {
+                        node_stack.push_back(n48->_children[index].get());
                     }
                 }
             }
@@ -569,7 +570,6 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
             }
         }
 
-        std::sort(results.begin(), results.end());
         return results;
     }
 
