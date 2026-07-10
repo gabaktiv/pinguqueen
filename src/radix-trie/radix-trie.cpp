@@ -521,8 +521,9 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
     }
 
 
-    void RadixTrie::collect_all_leaves(Node* start_node, std::vector<std::string>& results) {
-        if (start_node == nullptr) return;
+    std::vector<std::string> RadixTrie::collect_all_leaves(Node* start_node) {
+        std::vector<std::string> results;
+        if (start_node == nullptr) return results;
 
         std::vector<Node*> node_stack;
         node_stack.reserve(256);
@@ -538,7 +539,6 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
                 continue;
             }
 
-            // Hardware-nahes Abwandern
             if (current->_type == NodeType::Node4) {
                 auto* n4 = static_cast<Node4*>(current);
                 for (int i = static_cast<int>(n4->_child_count) - 1; i >= 0; --i) {
@@ -568,24 +568,40 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
                 }
             }
         }
+
+        std::sort(results.begin(), results.end());
+        return results;
+    }
+
+    std::vector<std::string> RadixTrie::get_all_paths_with_substring(const std::string& substring) {
+        if (_root == nullptr) return {};
+
+        std::vector<std::string> results = collect_all_leaves(_root.get());
+
+        results.erase(
+            std::remove_if(results.begin(), results.end(),
+                [&](const std::string& path) {
+                    return path.find(substring) == std::string::npos;
+                }),
+            results.end());
+
+        return results;
     }
 
     std::vector<std::string> RadixTrie::get_all_paths_with_prefix(const std::string& prefix) {
-        std::vector<std::string> results;
-        if (_root == nullptr) return results;
+        if (_root == nullptr) return {};
 
         Node* current = _root.get();
         u32 depth = 0;
 
-        //Navigation to that Node where the prefix matches.
         while (current != nullptr) {
             if (current->is_leaf()) {
                 auto* leaf = static_cast<LeafNode*>(current);
 
                 if (leaf->_full_key.rfind(prefix, 0) == 0) {
-                    results.push_back(leaf->_full_key);
+                    return {leaf->_full_key};
                 }
-                return results;
+                return {};
             }
 
             if (depth >= prefix.size()) {
@@ -601,8 +617,8 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
             current = current->find_child(static_cast<u8>(prefix[depth]));
             ++depth;
         }
-        collect_all_leaves(current, results);
-        return results;
+
+        return collect_all_leaves(current);
     }
 
 }

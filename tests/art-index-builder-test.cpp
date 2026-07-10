@@ -114,7 +114,7 @@ TEST_F(ArtIndexBuilderFixture, EmptyDirectoryYieldsEmptyTrie)
 
     pinguqueen::file::ArtIndexBuilder builder;
 
-    auto keys = collect_trie_keys(builder.debug_art());
+    auto keys = collect_trie_keys(builder.art());
     EXPECT_TRUE(keys.empty());
 }
 
@@ -125,7 +125,7 @@ TEST_F(ArtIndexBuilderFixture, SingleFileIsInserted)
 
     pinguqueen::file::ArtIndexBuilder builder;
 
-    auto keys = collect_trie_keys(builder.debug_art());
+    auto keys = collect_trie_keys(builder.art());
     std::vector<std::string> expected = {"hello.txt"};
     EXPECT_EQ(keys, expected);
 }
@@ -140,7 +140,7 @@ TEST_F(ArtIndexBuilderFixture, FilesInSubdirectoriesAreInserted)
 
     pinguqueen::file::ArtIndexBuilder builder;
 
-    auto keys = collect_trie_keys(builder.debug_art());
+    auto keys = collect_trie_keys(builder.art());
     std::vector<std::string> expected = {
         "docs/api.md",
         "readme.md",
@@ -158,7 +158,7 @@ TEST_F(ArtIndexBuilderFixture, FileSizeIsStoredCorrectly)
 
     pinguqueen::file::ArtIndexBuilder builder;
 
-    auto& trie = builder.debug_art();
+    auto& trie = builder.art();
     pinguqueen::core::FileInfo* info = trie.search("data.bin");
     ASSERT_NE(info, nullptr);
     EXPECT_EQ(info->_file_name, "data.bin");
@@ -174,7 +174,7 @@ TEST_F(ArtIndexBuilderFixture, OnlyRegularFilesAreInserted)
 
     pinguqueen::file::ArtIndexBuilder builder;
 
-    auto keys = collect_trie_keys(builder.debug_art());
+    auto keys = collect_trie_keys(builder.art());
     std::vector<std::string> expected = {"file.txt"};
     EXPECT_EQ(keys, expected);
 }

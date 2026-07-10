@@ -33,7 +33,7 @@ namespace pinguqueen::datastructs
         static void remove_child(std::unique_ptr<Node>& parent, u8 key) noexcept;
         [[nodiscard]] static u32 check_prefix(const Node* node, std::string_view key, u32 depth) noexcept;
         [[nodiscard]] LeafNode* find_leaf_node(std::string_view key) noexcept;
-        static void collect_all_leaves(Node* node, std::vector<std::string>& results);
+        [[nodiscard]] static std::vector<std::string> collect_all_leaves(Node* node);
         static void insert_node( std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth);
         static void delete_node (std::unique_ptr<Node>& node, std::string_view key, u32 depth) noexcept;
 
@@ -53,6 +53,9 @@ namespace pinguqueen::datastructs
 
         //nicht dem Paper entsprechend. Diese Funktion gibt alle Suchelemente zurück mit einem bestimmten Präfix
         [[nodiscard]] std::vector<std::string> get_all_paths_with_prefix(const std::string& prefix);
+
+        //Alle Pfade, die den Teilstring enthalten (collect_all_leaves + find-Filter)
+        [[nodiscard]] std::vector<std::string> get_all_paths_with_substring(const std::string& substring);
 
     };
 }

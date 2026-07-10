@@ -13,6 +13,9 @@ cmake-build-release/
 *.so
 *.dylib
 
+# Skripte
+*.sh
+
 # IDE-spezifische Dateien (z.B. Visual Studio oder CLion)
 .vs/
 .idea/

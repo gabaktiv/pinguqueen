@@ -13,6 +13,8 @@
 
 namespace pinguqueen::core
 {
+    enum class SearchMode { Prefix, Substring };
+
     class Visualiser {
         static constexpr int PAGE_SIZE = 50;
 
@@ -26,10 +28,12 @@ namespace pinguqueen::core
         ftxui::Component _input;
         ftxui::Component _menu;
         int _menu_selected = 0;
+        SearchMode _mode = SearchMode::Prefix;
 
         void update_results();
         void update_page();
         ftxui::Element render();
+        [[nodiscard]] const char* mode_label() const noexcept;
 
      public:
         explicit Visualiser(datastructs::RadixTrie& trie);

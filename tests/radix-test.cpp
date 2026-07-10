@@ -560,3 +560,137 @@ TEST(RadixTriePrefixSearch, EmptyTrieReturnsNoPaths)
 
     EXPECT_TRUE(trie.get_all_paths_with_prefix("workspace").empty());
 }
+
+// ============================================================================
+// Substring-Suche
+// ============================================================================
+
+namespace {
+
+std::vector<std::string> strip_null(std::vector<std::string> paths) {
+    for (auto& p : paths) {
+        auto pos = p.find('\0');
+        if (pos != std::string::npos) p.resize(pos);
+    }
+    return paths;
+}
+
+} // namespace
+
+TEST_F(RadixTrieFixture, SubstringEmptyTrieReturnsEmpty)
+{
+    EXPECT_TRUE(trie.get_all_paths_with_substring("main").empty());
+}
+
+TEST_F(RadixTrieFixture, SubstringNoMatchReturnsEmpty)
+{
+    insert("aaaa/bbbb/cccc");
+    EXPECT_TRUE(trie.get_all_paths_with_substring("xyz").empty());
+}
+
+TEST_F(RadixTrieFixture, SubstringMatchesPrefix)
+{
+    insert("src/main.cpp");
+    auto results = strip_null(trie.get_all_paths_with_substring("src"));
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0], "src/main.cpp");
+}
+
+TEST_F(RadixTrieFixture, SubstringMatchesSuffix)
+{
+    insert("src/main.cpp");
+    auto results = strip_null(trie.get_all_paths_with_substring(".cpp"));
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0], "src/main.cpp");
+}
+
+TEST_F(RadixTrieFixture, SubstringMatchesMiddle)
+{
+    insert("src/main.cpp");
+    auto results = strip_null(trie.get_all_paths_with_substring("main"));
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0], "src/main.cpp");
+}
+
+TEST_F(RadixTrieFixture, SubstringMatchesSingleCharacter)
+{
+    insert("src/main.cpp");
+    auto results = strip_null(trie.get_all_paths_with_substring("i"));
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0], "src/main.cpp");
+}
+
+TEST_F(RadixTrieFixture, SubstringMatchesMultiplePaths)
+{
+    insert("workspace/project/src/main.cpp");
+    insert("workspace/project/src/main.hpp");
+    insert("workspace/project/tests/main_test.cpp");
+    insert("workspace/readme.md");
+
+    auto results = strip_null(trie.get_all_paths_with_substring("main"));
+    ASSERT_EQ(results.size(), 3U);
+    // Reihenfolge = Trie-Traversierungs-Reihenfolge. Ist stabil, solange collect_all_leaves so bleibt.
+    EXPECT_EQ(results[0], "workspace/project/src/main.cpp");
+    EXPECT_EQ(results[1], "workspace/project/src/main.hpp");
+    EXPECT_EQ(results[2], "workspace/project/tests/main_test.cpp");
+}
+
+TEST_F(RadixTrieFixture, SubstringMatchesDirectoryName)
+{
+    insert("var/log/syslog");
+    insert("var/log/auth.log");
+    insert("etc/logrotate.conf");
+    insert("usr/bin/logger");
+    insert("home/user/scratch.txt");
+
+    auto results = strip_null(trie.get_all_paths_with_substring("log"));
+    ASSERT_EQ(results.size(), 4U);
+    // "scratch.txt" enthält kein "log" -> nicht im Ergebnis
+    for (const auto& r : results) {
+        EXPECT_NE(r.find("log"), std::string::npos);
+    }
+}
+
+TEST_F(RadixTrieFixture, SubstringMatchesMultipleOccurrencesInOnePath)
+{
+    insert("foo/bar/foo.baz");
+    auto results = strip_null(trie.get_all_paths_with_substring("foo"));
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0], "foo/bar/foo.baz");
+}
+
+TEST_F(RadixTrieFixture, SubstringMatchesPathWithSpaces)
+{
+    insert("my documents/important file.txt");
+    auto results = strip_null(trie.get_all_paths_with_substring("doc"));
+    ASSERT_EQ(results.size(), 1U);
+    EXPECT_EQ(results[0], "my documents/important file.txt");
+}
+
+TEST_F(RadixTrieFixture, SubstringAcrossLargeTrie)
+{
+    for (u32 i = 0; i < 1000; ++i) {
+        insert("module_" + std::to_string(i % 50) + "/file_" + std::to_string(i) + ".txt");
+    }
+
+    auto results = strip_null(trie.get_all_paths_with_substring("file_42"));
+    // Nur exakte "file_42" matches (nicht file_420, file_421 etc.)
+    for (const auto& r : results) {
+        EXPECT_NE(r.find("file_42"), std::string::npos);
+    }
+    EXPECT_GT(results.size(), 0U);
+
+    auto no_results = trie.get_all_paths_with_substring("nichtvorhanden");
+    EXPECT_TRUE(no_results.empty());
+}
+
+TEST_F(RadixTrieFixture, SubstringDotCpp)
+{
+    insert("src/main.cpp");
+    insert("src/helper.cpp");
+    insert("src/main.hpp");
+    insert("docs/guide.md");
+
+    auto results = strip_null(trie.get_all_paths_with_substring(".cpp"));
+    ASSERT_EQ(results.size(), 2U);
+}

@@ -10,7 +10,7 @@ namespace pinguqueen::core
 {
 
     Visualiser::Visualiser(datastructs::RadixTrie& trie)
-        : _trie(trie) {}
+        : _trie(trie), _prev_search("\1") {}
 
     Visualiser::~Visualiser() = default;
 
@@ -34,7 +34,9 @@ namespace pinguqueen::core
         }
         _prev_search = _search;
 
-        auto new_results = _trie.get_all_paths_with_prefix(_search);
+        auto new_results = (_mode == SearchMode::Prefix)
+            ? _trie.get_all_paths_with_prefix(_search)
+            : _trie.get_all_paths_with_substring(_search);
         for (auto& r : new_results) {
             auto const pos = r.find('\0');
             if (pos != std::string::npos) {
@@ -49,11 +51,18 @@ namespace pinguqueen::core
         }
     }
 
+    const char* Visualiser::mode_label() const noexcept
+    {
+        return _mode == SearchMode::Prefix ? " [Prefix]" : " [Substr]";
+    }
+
     ftxui::Element Visualiser::render()
     {
         auto page_str = "Page " + std::to_string(_page + 1) + "/" + std::to_string(_total_pages);
         auto left = ftxui::vbox({
-            ftxui::hbox(ftxui::text(" 🔍 "), _input->Render()) | ftxui::border,
+            ftxui::hbox(
+                ftxui::text(mode_label()) | ftxui::bold | ftxui::color(ftxui::Color::Cyan),
+                ftxui::text(" 🔍 "), _input->Render()) | ftxui::border,
             ftxui::separator(),
             _menu->Render()
                 | ftxui::vscroll_indicator
@@ -106,11 +115,16 @@ namespace pinguqueen::core
 
         auto container = ftxui::Container::Vertical({_input, _menu});
 
-        auto app = ftxui::CatchEvent(container, [&](ftxui::Event event) {
+        auto app = ftxui::CatchEvent(container, [&](const ftxui::Event& event) {
             if (event == ftxui::Event::Tab || event == ftxui::Event::TabReverse) {
                 _page = (_page + 1) % _total_pages;
                 _menu_selected = 0;
                 update_page();
+                return true;
+            }
+            if (event == ftxui::Event::F2) {
+                _mode = (_mode == SearchMode::Prefix) ? SearchMode::Substring : SearchMode::Prefix;
+                _prev_search = "\1";
                 return true;
             }
             return false;

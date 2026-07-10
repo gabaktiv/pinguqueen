@@ -352,6 +352,53 @@ namespace {
         runDeleteBenchmark(state, input);
     }
 
+    void runSubstringBenchmark(
+        benchmark::State& state,
+        TrieInput const& input,
+        std::string const& query
+    ) {
+        PreparedTrie pt = buildTrie(input);
+
+        for (auto _: state) {
+            auto results = pt.trie.get_all_paths_with_substring(query);
+            benchmark::DoNotOptimize(results.data());
+            benchmark::ClobberMemory();
+        }
+
+        state.SetItemsProcessed(
+            static_cast<std::int64_t>(state.iterations())
+            * static_cast<std::int64_t>(input.keys.size())
+        );
+    }
+
+    void BM_SubstringCommonQuery(benchmark::State& state) {
+        TrieInput const input = makeIndexedPathInput(
+            static_cast<std::size_t>(state.range(0))
+        );
+        runSubstringBenchmark(state, input, ".cpp");
+    }
+
+    void BM_SubstringRareQuery(benchmark::State& state) {
+        TrieInput const input = makeIndexedPathInput(
+            static_cast<std::size_t>(state.range(0))
+        );
+        runSubstringBenchmark(state, input, "module_0");
+    }
+
+    void BM_SubstringNoMatch(benchmark::State& state) {
+        TrieInput const input = makeIndexedPathInput(
+            static_cast<std::size_t>(state.range(0))
+        );
+        runSubstringBenchmark(state, input, "nichtvorhanden");
+    }
+
+    void BM_SubstringDeepSharedPrefix(benchmark::State& state) {
+        TrieInput const input = makeSharedPrefixInput(
+            static_cast<std::size_t>(state.range(0))
+        );
+        runSubstringBenchmark(state, input, "file_");
+    }
+
     void BM_Lookup_StdMap(benchmark::State& state) {
         auto const input = makeSharedPrefixInput(static_cast<std::size_t>(state.range(0)));
 
@@ -387,5 +434,10 @@ BENCHMARK(BM_DeleteIndexedPaths)->Arg(10)->Arg(100)->Arg(1000);
 BENCHMARK(BM_DeleteSharedPrefixPaths)->Arg(10)->Arg(100)->Arg(1000);
 
 BENCHMARK(BM_Lookup_StdMap)->Arg(10)->Arg(100)->Arg(1000)->Arg(10000);
+
+BENCHMARK(BM_SubstringCommonQuery)->Arg(100)->Arg(1000)->Arg(10000);
+BENCHMARK(BM_SubstringRareQuery)->Arg(100)->Arg(1000)->Arg(10000);
+BENCHMARK(BM_SubstringNoMatch)->Arg(100)->Arg(1000)->Arg(10000);
+BENCHMARK(BM_SubstringDeepSharedPrefix)->Arg(100)->Arg(1000)->Arg(10000);
 
 BENCHMARK_MAIN();

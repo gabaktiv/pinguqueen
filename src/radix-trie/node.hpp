@@ -5,10 +5,12 @@
 #include <string>
 
 /*
- * - Hier ist die Node-Struktur des Adaptive-Radix-Trie implementiert. Dabei ermöglicht diese Struktur die dynamische anpassung der Anzahl der Kinder, um Speicher anzupassen.
+ * - Hier ist die Node-Struktur des Adaptive-Radix-Trie implementiert.
+ * Dabei ermöglicht diese Struktur die dynamische anpassung der Anzahl der Kinder, um Speicher anzupassen.
  * - Die Anzahl der Kinder is hard-coded, Struktur wie std::vector wird nicht verwendet, da dieser standartmäßig mind. 24 Bytes overhead verbraucht.
  * - TODO: Ich nutze aus, dass die letzten 3 bits jeder erster speicheradresse einer allokation 0 sind und erkenne mit pointertagging dann, in dem ich den letzten bit auf 1 setze, ob mein knoten ein Leaf is
- * - Die Node Implementierungs-Entscheidungen sind aus dem in der Readme verlinkten Paper zurückzuführen, wobei nur der optimistische Ansatz implementiert ist mit der _prefix_skip_length variabel.
+ * - Die Node Implementierungs-Entscheidungen sind aus dem in der Readme verlinkten Paper zurückzuführen,
+ * wobei nur der optimistische Ansatz implementiert ist mit der _prefix_skip_length variabel.
  * - Die Funktionen insert_pure und remove_pure sind nicht virtuell, da zu einem, der Leaf Node diese Funktionen nicht braucht, und sowieso im Kontext des Nutzen abgefragt werden sollte,
  * was für eine Art Knoten diese Funktion ausführt, da diese zuvor vielleicht schrumpfen oder erweitert werden müssen
  *  - Ich habe mich für structs statt Klassen entschieden, da die finale Verwaltung in der RadxiTrie Klasse verwendet wird.
@@ -22,10 +24,10 @@ namespace pinguqueen::datastructs {
     {
         //  Anzahl der zu blind überspringenden Zeichen des Suchstrings
         u32 _prefix_skip_length = 0;
+
         u16 _child_count = 0;
         NodeType _type = NodeType::Node4;
         bool _isleaf : 1 = false;
-
 
 
         Node() = default;
@@ -62,14 +64,13 @@ namespace pinguqueen::datastructs {
 
     // - Node4 and Node16 are very similar. The connection to the children is implemented with 2 arrays.
     // - _keys[i] represent the edge and _children[i] leads to the next node.
-    // - Example _keys[1] -> 'e'; _children[1] -> node4
+    // - Example _keys[1] -> 'e'; _children[1] -> node
     // - It's important in the deletion process, that these arrays are filled from left to right with no spaces inbetween.
     // - Also inserting an edge will sort them with an insertion sort algorithm
     // (Handling of deletion, inserting and searching is implemented in the Adaptive-Radix-Trie Class, not here or the node.cpp)
 
     struct Node4 :  Node
     {
-    public:
 
         static constexpr u8 GROW_CHILD_COUNT = 4;
         static constexpr u8 NO_CHILD = 0;
@@ -98,7 +99,6 @@ namespace pinguqueen::datastructs {
 
     struct Node16 : Node
     {
-    public:
         u8 _keys[16]{};
         std::unique_ptr<Node> _children[16]{};
         static constexpr u8 SHRINKING_CHILD_COUNT = 3;
@@ -127,7 +127,6 @@ namespace pinguqueen::datastructs {
     // - The const "NOTHING" variable is the default variable for non exisiting edges in the _keys array.
     struct Node48 : Node
     {
-    public:
         static constexpr u8 NOTHING = 48;
         static constexpr u8 SHRINKING_CHILD_COUNT = 15;
         static constexpr u8 GROW_CHILD_COUNT = 48;
@@ -154,10 +153,8 @@ namespace pinguqueen::datastructs {
     };
 
     //Only one children Array, Edges and Nodes get Hashmapped. Example:  _children['e'] -> node4
-
     struct Node256 : Node
     {
-    public:
         std::unique_ptr<Node> _children[256]{};
         static constexpr u16 FULL = 256;
         static constexpr u8 SHRINKING_CHILD_COUNT = 47;

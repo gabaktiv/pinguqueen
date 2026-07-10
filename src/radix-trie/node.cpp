@@ -30,7 +30,7 @@ namespace pinguqueen::datastructs {
         auto* slot = Node16::find_child_slot(key_byte);
         return slot == nullptr ? nullptr : slot->get();
     }
-
+//TODO: Binäre Suchalternative implementieren
     std::unique_ptr<Node>* Node16::find_child_slot(u8 key_byte) noexcept
     {
         __m128i key_vector = _mm_set1_epi8(static_cast<char>(key_byte));
