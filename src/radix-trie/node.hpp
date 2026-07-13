@@ -3,7 +3,7 @@
 #include "../core/file-info.hpp"
 #include <memory>
 #include <string>
-
+#include <cassert>
 /*
  * - Hier ist die Node-Struktur des Adaptive-Radix-Trie implementiert.
  * Dabei ermöglicht diese Struktur die dynamische anpassung der Anzahl der Kinder, um Speicher anzupassen.

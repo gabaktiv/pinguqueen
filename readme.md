@@ -15,6 +15,6 @@ Dieses Projekt ist eine wilde Mischung aus hässlichem Data-Oriented-Design in d
 
 
 Unter der executable "All CTest" können die Testtreiber zu dem Adaptive-Radix-Trie gestartet werden und unter
-"radix-trie-benchmarks", die benchmarktests für den ART.
+"radix-trie-benchmarks", die benchmarktests für den ART. Die Executable pinguqueen führt das Programm mit Frontend aus.
 
 Beide diese Tests, sind bis jetzt KI generiert.

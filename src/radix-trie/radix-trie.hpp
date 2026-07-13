@@ -2,7 +2,6 @@
 #include "../global.hpp"
 #include "node.hpp"
 
-//TODO: Implementation als Single-Ton
 
 /*
  * - Header-Datei des Adaptiven-Radix-Trie anhand des in der Readme verlinkten Paper.
