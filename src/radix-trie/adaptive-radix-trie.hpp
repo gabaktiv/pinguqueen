@@ -10,11 +10,11 @@
 
 namespace pinguqueen::datastructs
 {
-    class RadixTrie
+    class AdaptiveRadixTrie
     {
         static constexpr char TERMINAL = '\0';
 
-        using Self = RadixTrie;
+        using Self = AdaptiveRadixTrie;
         std::unique_ptr<Node> _root = nullptr;
 
         static void replace(std::unique_ptr<Node>& dest, std::unique_ptr<Node> src) noexcept;
@@ -38,12 +38,12 @@ namespace pinguqueen::datastructs
 
 
     public:
-        RadixTrie() = default;
-        ~RadixTrie() = default;
-        RadixTrie(const RadixTrie&) = delete;
-        RadixTrie& operator=(const RadixTrie&) = delete;
-        RadixTrie(RadixTrie&&) = default;
-        RadixTrie& operator=(RadixTrie&&) = delete;
+        AdaptiveRadixTrie() = default;
+        ~AdaptiveRadixTrie() = default;
+        AdaptiveRadixTrie(const AdaptiveRadixTrie&) = delete;
+        AdaptiveRadixTrie& operator=(const AdaptiveRadixTrie&) = delete;
+        AdaptiveRadixTrie(AdaptiveRadixTrie&&) = default;
+        AdaptiveRadixTrie& operator=(AdaptiveRadixTrie&&) = delete;
 
         void insert( std::string key, std::unique_ptr<core::FileInfo> value) noexcept;
         void remove(std::string key) noexcept;

@@ -25,7 +25,7 @@ namespace pinguqueen::tests {
         void run(std::string_view test_name, TestBody&& body)
         {
             // 🏆 KORREKTUR: Nutze Substring-Suche statt exaktem Vergleich.
-            // Das fängt Formate wie "RadixTrie.test_name" oder reine "test_name" Filter von CTest ab.
+            // Das fängt Formate wie "AdaptiveRadixTrie.test_name" oder reine "test_name" Filter von CTest ab.
             if (!_test_filter.empty() && test_name.find(_test_filter) == std::string_view::npos) {
                 return;
             }

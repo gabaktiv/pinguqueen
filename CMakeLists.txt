@@ -34,7 +34,7 @@ endif()
 
 # Core-Library
 add_library(trie_core
-        src/radix-trie/radix-trie.cpp
+        src/radix-trie/adaptive-radix-trie.cpp
         src/radix-trie/node.cpp
 )
 add_library(file_core

@@ -21,7 +21,7 @@ shared-prefix paths and deletion from prepared tries.
 #include <vector>
 
 #include "../src/core/file-info.hpp"
-#include "radix-trie/radix-trie.hpp"
+#include "radix-trie/adaptive-radix-trie.hpp"
 
 namespace {
 
@@ -31,7 +31,7 @@ namespace {
     };
 
     struct PreparedTrie {
-        pinguqueen::datastructs::RadixTrie trie;
+        pinguqueen::datastructs::AdaptiveRadixTrie trie;
 
         PreparedTrie() = default;
         ~PreparedTrie() = default;
@@ -187,7 +187,7 @@ namespace {
         TrieInput const& input
     ) {
         for (auto _: state) {
-            pinguqueen::datastructs::RadixTrie trie;
+            pinguqueen::datastructs::AdaptiveRadixTrie trie;
 
             for (std::size_t index = 0; index < input.keys.size(); ++index) {
                 trie.insert(

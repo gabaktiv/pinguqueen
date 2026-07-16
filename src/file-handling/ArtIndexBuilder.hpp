@@ -3,7 +3,7 @@
 //
 #pragma once
 #include <filesystem>
-#include "../radix-trie/radix-trie.hpp"
+#include "../radix-trie/adaptive-radix-trie.hpp"
 #include "../core/file-info.hpp"
 
 namespace pinguqueen::file {
@@ -11,7 +11,7 @@ namespace pinguqueen::file {
 
     class ArtIndexBuilder {
         std::filesystem::path _root;
-        datastructs::RadixTrie _art;
+        datastructs::AdaptiveRadixTrie _art;
 
         void init();
 
@@ -23,7 +23,7 @@ namespace pinguqueen::file {
          ArtIndexBuilder(ArtIndexBuilder&&) = default;
          ArtIndexBuilder& operator=(ArtIndexBuilder&&) = delete;
 
-         [[nodiscard]] datastructs::RadixTrie& art() { return _art; }
+         [[nodiscard]] datastructs::AdaptiveRadixTrie& art() { return _art; }
 
 
 

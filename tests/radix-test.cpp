@@ -2,7 +2,7 @@
 
 #include "../src/core/file-info.hpp"
 #include "radix-trie/node.hpp"
-#include "radix-trie/radix-trie.hpp"
+#include "radix-trie/adaptive-radix-trie.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -16,8 +16,8 @@ namespace {
 using namespace pinguqueen;
 using namespace pinguqueen::datastructs;
 
-struct RadixTrieFixture : testing::Test {
-    RadixTrie trie;
+struct AdaptiveRadixTrieFixture : testing::Test {
+    AdaptiveRadixTrie trie;
 
     core::FileInfo* insert(std::string_view key, u32 size = 1)
     {
@@ -74,7 +74,7 @@ const LeafNode* find_leaf(Node* root, std::string_view key)
     return nullptr;
 }
 
-void insert_suffix_range(RadixTrieFixture& fixture, unsigned char first, unsigned char last)
+void insert_suffix_range(AdaptiveRadixTrieFixture& fixture, unsigned char first, unsigned char last)
 {
     for (unsigned char suffix = first; suffix <= last; ++suffix) {
         fixture.insert(key_with_suffix(suffix), suffix);
@@ -161,7 +161,7 @@ std::vector<std::string> collect_keys(Node* root)
 
 } // namespace
 
-TEST_F(RadixTrieFixture, InsertIntoEmptyRootCreatesLeaf)
+TEST_F(AdaptiveRadixTrieFixture, InsertIntoEmptyRootCreatesLeaf)
 {
     core::FileInfo* info = insert("workspace/main.cpp", 42);
 
@@ -172,7 +172,7 @@ TEST_F(RadixTrieFixture, InsertIntoEmptyRootCreatesLeaf)
     EXPECT_EQ(leaf->_metadata.get(), info);
 }
 
-TEST_F(RadixTrieFixture, SharedPrefixSplitCreatesNode4WithBothLeavesReachable)
+TEST_F(AdaptiveRadixTrieFixture, SharedPrefixSplitCreatesNode4WithBothLeavesReachable)
 {
     core::FileInfo* car = insert("car", 1);
     core::FileInfo* cat = insert("cat", 2);
@@ -192,7 +192,7 @@ TEST_F(RadixTrieFixture, SharedPrefixSplitCreatesNode4WithBothLeavesReachable)
     EXPECT_EQ(find_leaf(trie.root_node(), "cab"), nullptr);
 }
 
-TEST_F(RadixTrieFixture, Node4KeepsChildrenSortedByEdgeByte)
+TEST_F(AdaptiveRadixTrieFixture, Node4KeepsChildrenSortedByEdgeByte)
 {
     insert("pd");
     insert("pb");
@@ -210,7 +210,7 @@ TEST_F(RadixTrieFixture, Node4KeepsChildrenSortedByEdgeByte)
     EXPECT_EQ(node->_keys[3], static_cast<u8>('d'));
 }
 
-TEST_F(RadixTrieFixture, GrowsFromNode4ToNode16)
+TEST_F(AdaptiveRadixTrieFixture, GrowsFromNode4ToNode16)
 {
     insert_suffix_range(*this, 1, 5);
 
@@ -221,7 +221,7 @@ TEST_F(RadixTrieFixture, GrowsFromNode4ToNode16)
     EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(5)), nullptr);
 }
 
-TEST_F(RadixTrieFixture, GrowsFromNode16ToNode48)
+TEST_F(AdaptiveRadixTrieFixture, GrowsFromNode16ToNode48)
 {
     insert_suffix_range(*this, 1, 17);
 
@@ -232,7 +232,7 @@ TEST_F(RadixTrieFixture, GrowsFromNode16ToNode48)
     EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(17)), nullptr);
 }
 
-TEST_F(RadixTrieFixture, GrowsFromNode48ToNode256)
+TEST_F(AdaptiveRadixTrieFixture, GrowsFromNode48ToNode256)
 {
     insert_suffix_range(*this, 1, 49);
 
@@ -243,7 +243,7 @@ TEST_F(RadixTrieFixture, GrowsFromNode48ToNode256)
     EXPECT_NE(find_leaf(trie.root_node(), key_with_suffix(49)), nullptr);
 }
 
-TEST_F(RadixTrieFixture, DeleteExistingLeafRemovesOnlyThatKey)
+TEST_F(AdaptiveRadixTrieFixture, DeleteExistingLeafRemovesOnlyThatKey)
 {
     insert("pa");
     insert("pb");
@@ -256,7 +256,7 @@ TEST_F(RadixTrieFixture, DeleteExistingLeafRemovesOnlyThatKey)
     EXPECT_NE(find_leaf(trie.root_node(), "pc"), nullptr);
 }
 
-TEST_F(RadixTrieFixture, DeletingAllKeysLeavesEmptyRoot)
+TEST_F(AdaptiveRadixTrieFixture, DeletingAllKeysLeavesEmptyRoot)
 {
     insert("pa");
     insert("pb");
@@ -269,7 +269,7 @@ TEST_F(RadixTrieFixture, DeletingAllKeysLeavesEmptyRoot)
     EXPECT_EQ(trie.root_node(), nullptr);
 }
 
-TEST_F(RadixTrieFixture, DeletingMissingKeyDoesNotChangeExistingKeys)
+TEST_F(AdaptiveRadixTrieFixture, DeletingMissingKeyDoesNotChangeExistingKeys)
 {
     insert("alpha");
     insert("alpine");
@@ -280,7 +280,7 @@ TEST_F(RadixTrieFixture, DeletingMissingKeyDoesNotChangeExistingKeys)
     EXPECT_NE(find_leaf(trie.root_node(), "alpine"), nullptr);
 }
 
-TEST_F(RadixTrieFixture, ShrinksFromNode48ToNode16)
+TEST_F(AdaptiveRadixTrieFixture, ShrinksFromNode48ToNode16)
 {
     insert_suffix_range(*this, 1, 17);
 
@@ -294,7 +294,7 @@ TEST_F(RadixTrieFixture, ShrinksFromNode48ToNode16)
     EXPECT_EQ(find_leaf(trie.root_node(), key_with_suffix(17)), nullptr);
 }
 
-TEST_F(RadixTrieFixture, ShrinksFromNode256ToNode48)
+TEST_F(AdaptiveRadixTrieFixture, ShrinksFromNode256ToNode48)
 {
     insert_suffix_range(*this, 1, 49);
 
@@ -308,7 +308,7 @@ TEST_F(RadixTrieFixture, ShrinksFromNode256ToNode48)
     EXPECT_EQ(find_leaf(trie.root_node(), key_with_suffix(49)), nullptr);
 }
 
-TEST_F(RadixTrieFixture, CollectsAllInsertedKeysAfterDeepSharedPrefixInserts)
+TEST_F(AdaptiveRadixTrieFixture, CollectsAllInsertedKeysAfterDeepSharedPrefixInserts)
 {
     std::vector<std::string> keys = {
         "workspace/project/src/main.cpp",
@@ -325,7 +325,7 @@ TEST_F(RadixTrieFixture, CollectsAllInsertedKeysAfterDeepSharedPrefixInserts)
     EXPECT_EQ(collect_keys(trie.root_node()), keys);
 }
 
-TEST_F(RadixTrieFixture, DuplicateInsertKeepsKeyReachableExactlyOnce)
+TEST_F(AdaptiveRadixTrieFixture, DuplicateInsertKeepsKeyReachableExactlyOnce)
 {
     core::FileInfo* first = insert("workspace/project/file.cpp", 1);
     core::FileInfo* second = insert("workspace/project/file.cpp", 2);
@@ -337,7 +337,7 @@ TEST_F(RadixTrieFixture, DuplicateInsertKeepsKeyReachableExactlyOnce)
     expect_only_keys(trie.root_node(), {"workspace/project/file.cpp"});
 }
 
-TEST_F(RadixTrieFixture, RepeatedDuplicateInsertsDoNotDestroyNeighborKeys)
+TEST_F(AdaptiveRadixTrieFixture, RepeatedDuplicateInsertsDoNotDestroyNeighborKeys)
 {
     insert("workspace/project/file.cpp", 1);
     insert("workspace/project/file.hpp", 2);
@@ -356,7 +356,7 @@ TEST_F(RadixTrieFixture, RepeatedDuplicateInsertsDoNotDestroyNeighborKeys)
     });
 }
 
-TEST_F(RadixTrieFixture, InsertingShorterKeyThatIsPrefixOfExistingKeyKeepsBoth)
+TEST_F(AdaptiveRadixTrieFixture, InsertingShorterKeyThatIsPrefixOfExistingKeyKeepsBoth)
 {
     insert("workspace/project/src/main.cpp", 1);
     insert("workspace/project/src", 2);
@@ -367,7 +367,7 @@ TEST_F(RadixTrieFixture, InsertingShorterKeyThatIsPrefixOfExistingKeyKeepsBoth)
     });
 }
 
-TEST_F(RadixTrieFixture, InsertingLongerKeyBelowExistingPrefixKeepsBoth)
+TEST_F(AdaptiveRadixTrieFixture, InsertingLongerKeyBelowExistingPrefixKeepsBoth)
 {
     insert("workspace/project/src", 1);
     insert("workspace/project/src/main.cpp", 2);
@@ -378,7 +378,7 @@ TEST_F(RadixTrieFixture, InsertingLongerKeyBelowExistingPrefixKeepsBoth)
     });
 }
 
-TEST_F(RadixTrieFixture, PrefixFamilySurvivesMixedInsertionOrder)
+TEST_F(AdaptiveRadixTrieFixture, PrefixFamilySurvivesMixedInsertionOrder)
 {
     std::vector<std::string> keys = {
         "a/b/c/d",
@@ -397,7 +397,7 @@ TEST_F(RadixTrieFixture, PrefixFamilySurvivesMixedInsertionOrder)
     expect_only_keys(trie.root_node(), keys);
 }
 
-TEST_F(RadixTrieFixture, DeleteKeyThatIsPrefixOfAnotherRemovesOnlyExactKey)
+TEST_F(AdaptiveRadixTrieFixture, DeleteKeyThatIsPrefixOfAnotherRemovesOnlyExactKey)
 {
     insert("workspace");
     insert("workspace/project");
@@ -412,7 +412,7 @@ TEST_F(RadixTrieFixture, DeleteKeyThatIsPrefixOfAnotherRemovesOnlyExactKey)
     expect_absent(trie.root_node(), {"workspace"});
 }
 
-TEST_F(RadixTrieFixture, DeleteLongerMissingKeyBelowExistingLeafDoesNotChangeTree)
+TEST_F(AdaptiveRadixTrieFixture, DeleteLongerMissingKeyBelowExistingLeafDoesNotChangeTree)
 {
     std::vector<std::string> keys = {
         "alpha",
@@ -430,7 +430,7 @@ TEST_F(RadixTrieFixture, DeleteLongerMissingKeyBelowExistingLeafDoesNotChangeTre
     expect_only_keys(trie.root_node(), keys);
 }
 
-TEST_F(RadixTrieFixture, DeleteShorterMissingPrefixDoesNotChangeTree)
+TEST_F(AdaptiveRadixTrieFixture, DeleteShorterMissingPrefixDoesNotChangeTree)
 {
     std::vector<std::string> keys = {
         "workspace/project/src/main.cpp",
@@ -449,7 +449,7 @@ TEST_F(RadixTrieFixture, DeleteShorterMissingPrefixDoesNotChangeTree)
     expect_only_keys(trie.root_node(), keys);
 }
 
-TEST_F(RadixTrieFixture, AllByteSuffixesAreReachableAfterNode256Growth)
+TEST_F(AdaptiveRadixTrieFixture, AllByteSuffixesAreReachableAfterNode256Growth)
 {
     std::vector<std::string> keys;
     keys.reserve(255);
@@ -466,7 +466,7 @@ TEST_F(RadixTrieFixture, AllByteSuffixesAreReachableAfterNode256Growth)
     expect_only_keys(trie.root_node(), keys);
 }
 
-TEST_F(RadixTrieFixture, DeleteEverySecondByteSuffixPreservesTheRest)
+TEST_F(AdaptiveRadixTrieFixture, DeleteEverySecondByteSuffixPreservesTheRest)
 {
     std::vector<std::string> remaining;
     remaining.reserve(128);
@@ -486,7 +486,7 @@ TEST_F(RadixTrieFixture, DeleteEverySecondByteSuffixPreservesTheRest)
     expect_only_keys(trie.root_node(), remaining);
 }
 
-TEST_F(RadixTrieFixture, DeleteAllByteSuffixesInReverseLeavesEmptyRoot)
+TEST_F(AdaptiveRadixTrieFixture, DeleteAllByteSuffixesInReverseLeavesEmptyRoot)
 {
     for (u16 suffix = 1; suffix <= 255; ++suffix) {
         insert(key_with_suffix(static_cast<unsigned char>(suffix)), suffix);
@@ -502,7 +502,7 @@ TEST_F(RadixTrieFixture, DeleteAllByteSuffixesInReverseLeavesEmptyRoot)
     EXPECT_EQ(trie.root_node(), nullptr);
 }
 
-TEST_F(RadixTrieFixture, InterleavedInsertDeleteMatchesReferenceSet)
+TEST_F(AdaptiveRadixTrieFixture, InterleavedInsertDeleteMatchesReferenceSet)
 {
     std::set<std::string> expected;
 
@@ -531,7 +531,7 @@ TEST_F(RadixTrieFixture, InterleavedInsertDeleteMatchesReferenceSet)
     expect_only_keys(trie.root_node(), expected_keys);
 }
 
-TEST_F(RadixTrieFixture, DeepSharedPrefixRepeatedSplitsRemainReachable)
+TEST_F(AdaptiveRadixTrieFixture, DeepSharedPrefixRepeatedSplitsRemainReachable)
 {
     std::vector<std::string> keys;
     keys.reserve(150);
@@ -554,9 +554,9 @@ TEST_F(RadixTrieFixture, DeepSharedPrefixRepeatedSplitsRemainReachable)
     expect_only_keys(trie.root_node(), keys);
 }
 
-TEST(RadixTriePrefixSearch, EmptyTrieReturnsNoPaths)
+TEST(AdaptiveRadixTriePrefixSearch, EmptyTrieReturnsNoPaths)
 {
-    RadixTrie trie;
+    AdaptiveRadixTrie trie;
 
     EXPECT_TRUE(trie.get_all_paths_with_prefix("workspace").empty());
 }
@@ -577,18 +577,18 @@ std::vector<std::string> strip_null(std::vector<std::string> paths) {
 
 } // namespace
 
-TEST_F(RadixTrieFixture, SubstringEmptyTrieReturnsEmpty)
+TEST_F(AdaptiveRadixTrieFixture, SubstringEmptyTrieReturnsEmpty)
 {
     EXPECT_TRUE(trie.get_all_paths_with_substring("main").empty());
 }
 
-TEST_F(RadixTrieFixture, SubstringNoMatchReturnsEmpty)
+TEST_F(AdaptiveRadixTrieFixture, SubstringNoMatchReturnsEmpty)
 {
     insert("aaaa/bbbb/cccc");
     EXPECT_TRUE(trie.get_all_paths_with_substring("xyz").empty());
 }
 
-TEST_F(RadixTrieFixture, SubstringMatchesPrefix)
+TEST_F(AdaptiveRadixTrieFixture, SubstringMatchesPrefix)
 {
     insert("src/main.cpp");
     auto results = strip_null(trie.get_all_paths_with_substring("src"));
@@ -596,7 +596,7 @@ TEST_F(RadixTrieFixture, SubstringMatchesPrefix)
     EXPECT_EQ(results[0], "src/main.cpp");
 }
 
-TEST_F(RadixTrieFixture, SubstringMatchesSuffix)
+TEST_F(AdaptiveRadixTrieFixture, SubstringMatchesSuffix)
 {
     insert("src/main.cpp");
     auto results = strip_null(trie.get_all_paths_with_substring(".cpp"));
@@ -604,7 +604,7 @@ TEST_F(RadixTrieFixture, SubstringMatchesSuffix)
     EXPECT_EQ(results[0], "src/main.cpp");
 }
 
-TEST_F(RadixTrieFixture, SubstringMatchesMiddle)
+TEST_F(AdaptiveRadixTrieFixture, SubstringMatchesMiddle)
 {
     insert("src/main.cpp");
     auto results = strip_null(trie.get_all_paths_with_substring("main"));
@@ -612,7 +612,7 @@ TEST_F(RadixTrieFixture, SubstringMatchesMiddle)
     EXPECT_EQ(results[0], "src/main.cpp");
 }
 
-TEST_F(RadixTrieFixture, SubstringMatchesSingleCharacter)
+TEST_F(AdaptiveRadixTrieFixture, SubstringMatchesSingleCharacter)
 {
     insert("src/main.cpp");
     auto results = strip_null(trie.get_all_paths_with_substring("i"));
@@ -620,7 +620,7 @@ TEST_F(RadixTrieFixture, SubstringMatchesSingleCharacter)
     EXPECT_EQ(results[0], "src/main.cpp");
 }
 
-TEST_F(RadixTrieFixture, SubstringMatchesMultiplePaths)
+TEST_F(AdaptiveRadixTrieFixture, SubstringMatchesMultiplePaths)
 {
     insert("workspace/project/src/main.cpp");
     insert("workspace/project/src/main.hpp");
@@ -635,7 +635,7 @@ TEST_F(RadixTrieFixture, SubstringMatchesMultiplePaths)
     EXPECT_EQ(results[2], "workspace/project/tests/main_test.cpp");
 }
 
-TEST_F(RadixTrieFixture, SubstringMatchesDirectoryName)
+TEST_F(AdaptiveRadixTrieFixture, SubstringMatchesDirectoryName)
 {
     insert("var/log/syslog");
     insert("var/log/auth.log");
@@ -651,7 +651,7 @@ TEST_F(RadixTrieFixture, SubstringMatchesDirectoryName)
     }
 }
 
-TEST_F(RadixTrieFixture, SubstringMatchesMultipleOccurrencesInOnePath)
+TEST_F(AdaptiveRadixTrieFixture, SubstringMatchesMultipleOccurrencesInOnePath)
 {
     insert("foo/bar/foo.baz");
     auto results = strip_null(trie.get_all_paths_with_substring("foo"));
@@ -659,7 +659,7 @@ TEST_F(RadixTrieFixture, SubstringMatchesMultipleOccurrencesInOnePath)
     EXPECT_EQ(results[0], "foo/bar/foo.baz");
 }
 
-TEST_F(RadixTrieFixture, SubstringMatchesPathWithSpaces)
+TEST_F(AdaptiveRadixTrieFixture, SubstringMatchesPathWithSpaces)
 {
     insert("my documents/important file.txt");
     auto results = strip_null(trie.get_all_paths_with_substring("doc"));
@@ -667,7 +667,7 @@ TEST_F(RadixTrieFixture, SubstringMatchesPathWithSpaces)
     EXPECT_EQ(results[0], "my documents/important file.txt");
 }
 
-TEST_F(RadixTrieFixture, SubstringAcrossLargeTrie)
+TEST_F(AdaptiveRadixTrieFixture, SubstringAcrossLargeTrie)
 {
     for (u32 i = 0; i < 1000; ++i) {
         insert("module_" + std::to_string(i % 50) + "/file_" + std::to_string(i) + ".txt");
@@ -684,7 +684,7 @@ TEST_F(RadixTrieFixture, SubstringAcrossLargeTrie)
     EXPECT_TRUE(no_results.empty());
 }
 
-TEST_F(RadixTrieFixture, SubstringDotCpp)
+TEST_F(AdaptiveRadixTrieFixture, SubstringDotCpp)
 {
     insert("src/main.cpp");
     insert("src/helper.cpp");

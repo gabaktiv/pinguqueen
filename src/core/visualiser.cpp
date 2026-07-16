@@ -9,7 +9,7 @@
 namespace pinguqueen::core
 {
 
-    Visualiser::Visualiser(datastructs::RadixTrie& trie)
+    Visualiser::Visualiser(datastructs::AdaptiveRadixTrie& trie)
         : _trie(trie), _prev_search("\1") {}
 
     Visualiser::~Visualiser() = default;

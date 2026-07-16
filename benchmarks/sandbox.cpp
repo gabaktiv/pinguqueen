@@ -1,4 +1,4 @@
-#include "../src/radix-trie/radix-trie.hpp"
+#include "../src/radix-trie/adaptive-radix-trie.hpp"
 #include "../src/core/file-info.hpp"
 
 #include <cstdint>
@@ -9,7 +9,7 @@
 #include <vector>
 
 struct PreparedTrie {
-    pinguqueen::datastructs::RadixTrie trie;
+    pinguqueen::datastructs::AdaptiveRadixTrie trie;
 
     PreparedTrie() = default;
     ~PreparedTrie() = default;

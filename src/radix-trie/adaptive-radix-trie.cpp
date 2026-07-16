@@ -5,20 +5,20 @@
 
 namespace pinguqueen::datastructs
 {
-    void RadixTrie::replace(std::unique_ptr<Node>& dest, std::unique_ptr<Node> src) noexcept
+    void AdaptiveRadixTrie::replace(std::unique_ptr<Node>& dest, std::unique_ptr<Node> src) noexcept
     {
         assert(src != nullptr);
         dest = std::move(src);
 
     }
 
-    bool RadixTrie::is_leaf(const Node* node) noexcept
+    bool AdaptiveRadixTrie::is_leaf(const Node* node) noexcept
     {
         assert(node != nullptr);
         return node->is_leaf();
     }
 
-    std::string_view RadixTrie::load_representative_key(const Node* node) noexcept
+    std::string_view AdaptiveRadixTrie::load_representative_key(const Node* node) noexcept
     {
         assert(node != nullptr);
 
@@ -59,7 +59,7 @@ namespace pinguqueen::datastructs
         return static_cast<const LeafNode*>(curr)->_full_key;
     }
 
-    void RadixTrie::grow_4_to_16(std::unique_ptr<Node>& parent_slot) noexcept {
+    void AdaptiveRadixTrie::grow_4_to_16(std::unique_ptr<Node>& parent_slot) noexcept {
         assert(parent_slot->_type == NodeType::Node4);
 
         auto* old_node = static_cast<Node4*>(parent_slot.get());
@@ -80,7 +80,7 @@ namespace pinguqueen::datastructs
         parent_slot = std::move(new_node);
     }
 
-    void RadixTrie::grow_16_to_48(std::unique_ptr<Node>& parent_slot) noexcept
+    void AdaptiveRadixTrie::grow_16_to_48(std::unique_ptr<Node>& parent_slot) noexcept
     {
         assert(parent_slot->_type == NodeType::Node16);
 
@@ -104,7 +104,7 @@ namespace pinguqueen::datastructs
         parent_slot = std::move(new_node);
     }
 
-    void RadixTrie::grow_48_to_256(std::unique_ptr<Node>& parent_slot) noexcept
+    void AdaptiveRadixTrie::grow_48_to_256(std::unique_ptr<Node>& parent_slot) noexcept
     {
         assert(parent_slot->_type == NodeType::Node48);
 
@@ -126,7 +126,7 @@ namespace pinguqueen::datastructs
         parent_slot = std::move(new_node);
     }
 
-    void RadixTrie::shrink_256_to_48(std::unique_ptr<Node>& parent_slot) noexcept
+    void AdaptiveRadixTrie::shrink_256_to_48(std::unique_ptr<Node>& parent_slot) noexcept
     {
         assert(parent_slot != nullptr);
         assert(parent_slot->_type == NodeType::Node256);
@@ -151,7 +151,7 @@ namespace pinguqueen::datastructs
         parent_slot = std::move(new_node);
     }
 
-    void RadixTrie::shrink_48_to_16(std::unique_ptr<Node>& parent_slot) noexcept
+    void AdaptiveRadixTrie::shrink_48_to_16(std::unique_ptr<Node>& parent_slot) noexcept
 {
     assert(parent_slot != nullptr);
     assert(parent_slot->_type == NodeType::Node48);
@@ -177,7 +177,7 @@ namespace pinguqueen::datastructs
     parent_slot = std::move(new_node);
 }
 
-void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
+void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
 {
     assert(parent_slot != nullptr);
     assert(parent_slot->_type == NodeType::Node16);
@@ -199,7 +199,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
     }
 
 
-    void RadixTrie::add_child(std::unique_ptr<Node>& parent, u8 key, std::unique_ptr<Node> child) noexcept
+    void AdaptiveRadixTrie::add_child(std::unique_ptr<Node>& parent, u8 key, std::unique_ptr<Node> child) noexcept
     {
         if (parent->is_full()) {
             switch (parent->_type)
@@ -244,7 +244,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         }
     }
 
-    void RadixTrie::remove_child(std::unique_ptr<Node>& parent, u8 key) noexcept
+    void AdaptiveRadixTrie::remove_child(std::unique_ptr<Node>& parent, u8 key) noexcept
 {
     switch (parent->_type)
     {
@@ -300,7 +300,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
     }
 }
 
-    u32 RadixTrie::check_prefix(const Node* node, std::string_view key, u32 depth) noexcept
+    u32 AdaptiveRadixTrie::check_prefix(const Node* node, std::string_view key, u32 depth) noexcept
     {
         const Node* curr = node;
         while (!curr->is_leaf())
@@ -339,7 +339,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
     }
 
 
-    LeafNode* RadixTrie::find_leaf_node(std::string_view key) noexcept
+    LeafNode* AdaptiveRadixTrie::find_leaf_node(std::string_view key) noexcept
     {
         Node* curr = _root.get();
         u32 depth = 0;
@@ -378,7 +378,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
 /*Insert Function is very similar to the Code of the Paper with more out-of-bounds checking. It works recursiv and follows the
  *the optimisitic approach
 */
-    void RadixTrie::insert_node( std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
+    void AdaptiveRadixTrie::insert_node( std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
     {
         auto leaf = std::make_unique<LeafNode>();
         leaf->_type = NodeType::LeafNode;
@@ -459,7 +459,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
     }
 
 
-    void RadixTrie::delete_node(std::unique_ptr<Node>& node, std::string_view key, u32 depth) noexcept
+    void AdaptiveRadixTrie::delete_node(std::unique_ptr<Node>& node, std::string_view key, u32 depth) noexcept
     {
         if (node == nullptr) return;
 
@@ -495,21 +495,21 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
      *  Split: main.c -> \0    |<- Information of main.c
      *                -> pp\0  |<- Information of main.cpp
     */
-    void RadixTrie::insert( std::string key, std::unique_ptr<core::FileInfo> value) noexcept
+    void AdaptiveRadixTrie::insert( std::string key, std::unique_ptr<core::FileInfo> value) noexcept
     {
         key += TERMINAL;
         std::string_view view = key;
         insert_node(_root, view, std::move(value), 0);
     }
 
-    void RadixTrie::remove(std::string key) noexcept
+    void AdaptiveRadixTrie::remove(std::string key) noexcept
     {
         key += TERMINAL;
         std::string_view view = key;
         delete_node(_root, view, 0);
     }
 
-    core::FileInfo* RadixTrie::search(std::string key) noexcept
+    core::FileInfo* AdaptiveRadixTrie::search(std::string key) noexcept
     {
         key += TERMINAL;
         std::string_view view = key;
@@ -521,7 +521,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
     }
 
 
-    std::vector<std::string> RadixTrie::collect_all_leaves(Node* start_node) {
+    std::vector<std::string> AdaptiveRadixTrie::collect_all_leaves(Node* start_node) {
         std::vector<std::string> results;
         if (start_node == nullptr) return results;
 
@@ -573,7 +573,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         return results;
     }
 
-    std::vector<std::string> RadixTrie::get_all_paths_with_substring(const std::string& substring) {
+    std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_substring(const std::string& substring) {
         if (_root == nullptr) return {};
 
         std::vector<std::string> results = collect_all_leaves(_root.get());
@@ -588,7 +588,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
         return results;
     }
 
-    std::vector<std::string> RadixTrie::get_all_paths_with_prefix(const std::string& prefix) {
+    std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_prefix(const std::string& prefix) {
         if (_root == nullptr) return {};
 
         Node* current = _root.get();

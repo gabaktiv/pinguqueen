@@ -2,7 +2,7 @@
 
 #include "../src/file-handling/ArtIndexBuilder.hpp"
 #include "../src/core/file-info.hpp"
-#include "../src/radix-trie/radix-trie.hpp"
+#include "../src/radix-trie/adaptive-radix-trie.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -48,7 +48,7 @@ struct ArtIndexBuilderFixture : testing::Test {
         out << content;
     }
 
-    std::vector<std::string> collect_trie_keys(pinguqueen::datastructs::RadixTrie& trie)
+    std::vector<std::string> collect_trie_keys(pinguqueen::datastructs::AdaptiveRadixTrie& trie)
     {
         pinguqueen::datastructs::Node* root = trie.root_node();
         if (root == nullptr) {

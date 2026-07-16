@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "../global.hpp"
-#include "../radix-trie/radix-trie.hpp"
+#include "../radix-trie/adaptive-radix-trie.hpp"
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/dom/elements.hpp>
@@ -18,7 +18,7 @@ namespace pinguqueen::core
     class Visualiser {
         static constexpr int PAGE_SIZE = 50;
 
-        datastructs::RadixTrie& _trie;
+        datastructs::AdaptiveRadixTrie& _trie;
         std::string _search;
         std::string _prev_search;
         std::vector<std::string> _results;
@@ -36,7 +36,7 @@ namespace pinguqueen::core
         [[nodiscard]] const char* mode_label() const noexcept;
 
      public:
-        explicit Visualiser(datastructs::RadixTrie& trie);
+        explicit Visualiser(datastructs::AdaptiveRadixTrie& trie);
         ~Visualiser();
         Visualiser(const Visualiser&) = delete;
         Visualiser& operator=(const Visualiser&) = delete;
