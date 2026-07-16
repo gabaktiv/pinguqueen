@@ -91,7 +91,7 @@ namespace pinguqueen::datastructs
         new_node->_type = NodeType::Node48;
         new_node->_child_count = parent_slot->_child_count;
 
-        std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), static_cast<u8>(Node48::NOTHING));
+        std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), static_cast<u8>(Node48::NON_EXISTING_EDGE));
 
         for (u8 i = 0; i < Node16::GROW_CHILD_COUNT; ++i){
             u8 key_byte = old_node->_keys[i];
@@ -116,7 +116,7 @@ namespace pinguqueen::datastructs
 
         for (u16 key_byte = 0; key_byte < Node256::FULL; ++key_byte){
             u8 index = old_node->_keys[key_byte];
-            if (index != Node48::NOTHING){
+            if (index != Node48::NON_EXISTING_EDGE){
                 new_node->_children[key_byte] = std::move(old_node->_children[index]);
             }
         }
@@ -138,7 +138,7 @@ namespace pinguqueen::datastructs
         new_node->_child_count = old_node->_child_count;
         new_node->_type = NodeType::Node48;
 
-        std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), Node48::NOTHING);
+        std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), Node48::NON_EXISTING_EDGE);
 
         u8 next_free_slot = 0;
         for (u16 key_byte = 0; key_byte < Node256::FULL; ++key_byte) {
@@ -167,7 +167,7 @@ namespace pinguqueen::datastructs
     u8 next_free_slot = 0;
     for (u16 key_byte = 0; key_byte < 256; ++key_byte) {
         u8 index = old_node->_keys[key_byte];
-        if (index != Node48::NOTHING) {
+        if (index != Node48::NON_EXISTING_EDGE) {
             new_node->_keys[next_free_slot] = static_cast<u8>(key_byte);
             new_node->_children[next_free_slot] = std::move(old_node->_children[index]);
             ++next_free_slot;
@@ -555,7 +555,7 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
                 auto* n48 = static_cast<Node48*>(current);
                 for (int key_byte = 255; key_byte >= 0; --key_byte) {
                     u8 index = n48->_keys[key_byte];
-                    if (index != Node48::NOTHING) {
+                    if (index != Node48::NON_EXISTING_EDGE) {
                         node_stack.push_back(n48->_children[index].get());
                     }
                 }
@@ -606,6 +606,20 @@ void RadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept
 
             if (depth >= prefix.size()) {
                 break;
+            }
+
+            if (current->_prefix_skip_length > 0) {
+                u32 matched = check_prefix(current, prefix, depth);
+                u32 remaining = prefix.size() - depth;
+                u32 expected = std::min(current->_prefix_skip_length, remaining);
+
+                if (matched != expected) {
+                    return {};
+                }
+
+                if (remaining <= current->_prefix_skip_length) {
+                    return collect_all_leaves(current);
+                }
             }
 
             depth += current->_prefix_skip_length;

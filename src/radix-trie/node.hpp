@@ -124,10 +124,10 @@ namespace pinguqueen::datastructs {
 
     // - char gets hashmapped in _keys array -> content of one index equals the index in _children array to the next child.
     // - Example: _keys[e] -> 5; _children[5] -> node4. Annoying to implement shrink and grow functions, but space-efficient.
-    // - The const "NOTHING" variable is the default variable for non exisiting edges in the _keys array.
+    // - The const "NON_EXISTING_EDGE" variable is the default variable for non exisiting edges in the _keys array.
     struct Node48 : Node
     {
-        static constexpr u8 NOTHING = 48;
+        static constexpr u8 NON_EXISTING_EDGE = 48;
         static constexpr u8 SHRINKING_CHILD_COUNT = 15;
         static constexpr u8 GROW_CHILD_COUNT = 48;
 

@@ -8,7 +8,7 @@ namespace pinguqueen::datastructs {
 
     Node48::Node48()
     {
-        std::fill(_keys, _keys + 256, NOTHING);
+        std::fill(_keys, _keys + 256, NON_EXISTING_EDGE);
     }
 
     Node* Node4::find_child(u8 key_byte) noexcept
@@ -59,7 +59,7 @@ namespace pinguqueen::datastructs {
     std::unique_ptr<Node>* Node48::find_child_slot(u8 key_byte) noexcept
     {
         u8 index = _keys[key_byte];
-        if (index != NOTHING && _children[index] != nullptr) {
+        if (index != NON_EXISTING_EDGE && _children[index] != nullptr) {
             return &_children[index];
         }
         return nullptr;
@@ -183,10 +183,10 @@ namespace pinguqueen::datastructs {
         assert(_child_count > SHRINKING_CHILD_COUNT);
 
         u8 child_idx = _keys[key];
-        if (child_idx != Node48::NOTHING) {
+        if (child_idx != Node48::NON_EXISTING_EDGE) {
             assert(_children[child_idx] == nullptr);
             _children[child_idx].reset();
-            _keys[key] = Node48::NOTHING;
+            _keys[key] = Node48::NON_EXISTING_EDGE;
             --_child_count;
         }
 
