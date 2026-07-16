@@ -1,4 +1,4 @@
-#include "radix-trie.hpp"
+#include "adaptive-radix-trie.hpp"
 #include <algorithm>
 #include <cassert>
 #include <utility>
