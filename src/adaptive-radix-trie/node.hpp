@@ -43,8 +43,8 @@ namespace pinguqueen::datastructs {
         [[nodiscard]] virtual bool is_full() const noexcept = 0;
         [[nodiscard]] virtual bool is_too_empty() const noexcept = 0;
 
-        [[nodiscard]] virtual Node* find_child(u8 key_byte) noexcept = 0;
-        [[nodiscard]] virtual std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept = 0;
+        [[nodiscard]] virtual Node* find_child(u8 keyByte) noexcept = 0;
+        [[nodiscard]] virtual std::unique_ptr<Node>* find_child_slot(u8 keyByte) noexcept = 0;
 
     };
 
@@ -89,13 +89,13 @@ namespace pinguqueen::datastructs {
         [[nodiscard]] bool is_full() const noexcept override { return _child_count == GROW_CHILD_COUNT; }
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == NO_CHILD; }
 
-        [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
-        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept override;
+        [[nodiscard]] Node* find_child(u8 keyByte) noexcept override;
+        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 keyByte) noexcept override;
 
         //!DANGEROUS, NO GROW IF FULL
-        void insert_pure(u8 key, std::unique_ptr<Node> child) noexcept;
+        void insert_unchecked(u8 keyByte, std::unique_ptr<Node> childNode) noexcept;
         //!DANGEROUS, CRASHES IF NO CHILD AVAILABLE. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
-        void remove_pure(u8 key) noexcept;
+        void remove_unchecked(u8 keyByte) noexcept;
     };
 
 
@@ -118,13 +118,13 @@ namespace pinguqueen::datastructs {
         [[nodiscard]] bool is_full() const noexcept override { return _child_count == GROW_CHILD_COUNT; }
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
-        [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
-        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept override;
+        [[nodiscard]] Node* find_child(u8 keyByte) noexcept override;
+        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 keyByte) noexcept override;
 
         //!DANGEROUS, NO GROW IF FULL
-        void insert_pure(u8 key, std::unique_ptr<Node> child) noexcept;
+        void insert_unchecked(u8 keyByte, std::unique_ptr<Node> childNode) noexcept;
         //!DANGEROUS, NO SHRINKING IF TOO EMPTY. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
-        void remove_pure(u8 key) noexcept;
+        void remove_unchecked(u8 keyByte) noexcept;
     };
 
     // - char gets hashmapped in _keys array -> content of one index equals the index in _children array to the next child.
@@ -149,13 +149,13 @@ namespace pinguqueen::datastructs {
         [[nodiscard]] bool is_full() const noexcept override { return _child_count == 48; }
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
-        [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
-        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept override;
+        [[nodiscard]] Node* find_child(u8 keyByte) noexcept override;
+        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 keyByte) noexcept override;
 
         //!DANGEROUS, NO GROW IF FULL
-        void insert_pure(u8 key, std::unique_ptr<Node> child) noexcept;
+        void insert_unchecked(u8 keyByte, std::unique_ptr<Node> childNode) noexcept;
         //!DANGEROUS, NO SHRINKING IF TOO EMPTY. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
-        void remove_pure(u8 key) noexcept;
+        void remove_unchecked(u8 keyByte) noexcept;
     };
 
     //Only one children Array, Edges and Nodes get Hashmapped. Example:  _children['e'] -> node4
@@ -177,12 +177,12 @@ namespace pinguqueen::datastructs {
         [[nodiscard]] bool is_full() const noexcept override { return _child_count == MAX_CHILD_COUNT; }
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
-        [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
-        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 key_byte) noexcept override;
+        [[nodiscard]] Node* find_child(u8 keyByte) noexcept override;
+        [[nodiscard]] std::unique_ptr<Node>* find_child_slot(u8 keyByte) noexcept override;
 
-        void insert_pure(u8 key, std::unique_ptr<Node> child) noexcept;
+        void insert_unchecked(u8 keyByte, std::unique_ptr<Node> childNode) noexcept;
         //!DANGEROUS, NO SHRINKING IF TOO EMPTY. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
-        void remove_pure(u8 key) noexcept;
+        void remove_unchecked(u8 keyByte) noexcept;
     };
 
 }

@@ -60,12 +60,12 @@ namespace pinguqueen::file {
                     std::filesystem::path relative = std::filesystem::relative(entry.path(), _root, ec);
                     if (!ec) {
                         relative = relative.lexically_normal();
-                        auto last_write = entry.last_write_time(ec);
-                        if (ec) last_write = {};
+                        auto lastWrite = entry.last_write_time(ec);
+                        if (ec) lastWrite = {};
                         _art.insert(
                              relative.generic_string(),
                             std::make_unique<core::FileInfo>(relative.generic_string(),
-                                 static_cast<u32>(size), last_write)
+                                 static_cast<u32>(size), lastWrite)
                         );
                     }
 

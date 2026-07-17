@@ -30,17 +30,17 @@ namespace pinguqueen::core
         }
         _prev_search = _search;
 
-        auto new_results = (_mode == SearchMode::Prefix)
+        auto newResults = (_mode == SearchMode::Prefix)
             ? _trie.get_all_paths_with_prefix(_search)
             : _trie.get_all_paths_with_substring(_search);
-        for (auto& r : new_results) {
-            auto const pos = r.find('\0');
+        for (auto& result : newResults) {
+            auto const pos = result.find('\0');
             if (pos != std::string::npos) {
-                r.resize(pos);
+                result.resize(pos);
             }
         }
-        if (new_results != _results) {
-            _results = std::move(new_results);
+        if (newResults != _results) {
+            _results = std::move(newResults);
             _page = 0;
             _menu_selected = 0;
             update_page();
@@ -54,7 +54,7 @@ namespace pinguqueen::core
 
     ftxui::Element Visualiser::render()
     {
-        auto page_str = "Page " + std::to_string(_page + 1) + "/" + std::to_string(_total_pages);
+        auto pageStr = "Page " + std::to_string(_page + 1) + "/" + std::to_string(_total_pages);
         auto left = ftxui::vbox({
             ftxui::hbox(
                 ftxui::text(mode_label()) | ftxui::bold | ftxui::color(ftxui::Color::Cyan),
@@ -64,7 +64,7 @@ namespace pinguqueen::core
                 | ftxui::vscroll_indicator
                 | ftxui::frame
                 | ftxui::flex,
-            ftxui::text(page_str) | ftxui::center | ftxui::bold,
+            ftxui::text(pageStr) | ftxui::center | ftxui::bold,
         });
 
         if (_displayed.empty()
@@ -74,29 +74,29 @@ namespace pinguqueen::core
             return left;
         }
 
-        auto idx = static_cast<std::size_t>(_page * PAGE_SIZE + _menu_selected);
-        if (idx >= _results.size()) {
+        auto resultIndex = static_cast<std::size_t>(_page * PAGE_SIZE + _menu_selected);
+        if (resultIndex >= _results.size()) {
             return left;
         }
 
-        auto* info = _trie.search(_results[idx]);
+        auto* info = _trie.search(_results[resultIndex]);
         if (!info) {
             return left;
         }
 
         auto lines = info->to_string();
-        ftxui::Elements info_elems;
-        info_elems.reserve(lines.size() + 3);
-        info_elems.push_back(ftxui::text(" ℹ️  File Info") | ftxui::bold);
-        info_elems.push_back(ftxui::separator());
+        ftxui::Elements infoElems;
+        infoElems.reserve(lines.size() + 3);
+        infoElems.push_back(ftxui::text(" ℹ️  File Info") | ftxui::bold);
+        infoElems.push_back(ftxui::separator());
         for (auto const& line : lines) {
-            info_elems.push_back(ftxui::paragraph(line));
+            infoElems.push_back(ftxui::paragraph(line));
         }
 
         return ftxui::hbox({
             left | ftxui::flex,
             ftxui::separator(),
-            ftxui::vbox(std::move(info_elems))
+            ftxui::vbox(std::move(infoElems))
                 | ftxui::border
                 | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 40),
         });

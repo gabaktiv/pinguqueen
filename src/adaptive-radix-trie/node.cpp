@@ -12,29 +12,29 @@ namespace pinguqueen::datastructs {
         std::fill(_keys, _keys + 256, NON_EXISTING_EDGE);
     }
 
-    Node* Node4::find_child(u8 key_byte) noexcept
+    Node* Node4::find_child(u8 keyByte) noexcept
     {
-        auto* slot = Node4::find_child_slot(key_byte);
+        auto* slot = Node4::find_child_slot(keyByte);
         return slot == nullptr ? nullptr : slot->get();
     }
 
-    std::unique_ptr<Node>* Node4::find_child_slot(u8 key_byte) noexcept
+    std::unique_ptr<Node>* Node4::find_child_slot(u8 keyByte) noexcept
     {
         for (u16 i = 0; i < _child_count; ++i) {
-            if (_keys[i] == key_byte) return &_children[i];
+            if (_keys[i] == keyByte) return &_children[i];
         }
         return nullptr;
     }
 
-    Node* Node16::find_child(u8 key_byte) noexcept
+    Node* Node16::find_child(u8 keyByte) noexcept
     {
-        auto* slot = Node16::find_child_slot(key_byte);
+        auto* slot = Node16::find_child_slot(keyByte);
         return slot == nullptr ? nullptr : slot->get();
     }
 //TODO: Binäre Suchalternative implementieren
-    std::unique_ptr<Node>* Node16::find_child_slot(u8 key_byte) noexcept
+    std::unique_ptr<Node>* Node16::find_child_slot(u8 keyByte) noexcept
     {
-        __m128i key_vector = _mm_set1_epi8(static_cast<char>(key_byte));
+        __m128i key_vector = _mm_set1_epi8(static_cast<char>(keyByte));
         __m128i node_keys = _mm_loadu_si128(reinterpret_cast<const __m128i*>(_keys));
         __m128i cmp = _mm_cmpeq_epi8(key_vector, node_keys);
         u32 mask = static_cast<u32>(_mm_movemask_epi8(cmp));
@@ -51,66 +51,66 @@ namespace pinguqueen::datastructs {
 
 
 
-    Node* Node48::find_child(u8 key_byte) noexcept
+    Node* Node48::find_child(u8 keyByte) noexcept
     {
-        auto* slot = Node48::find_child_slot(key_byte);
+        auto* slot = Node48::find_child_slot(keyByte);
         return slot == nullptr ? nullptr : slot->get();
     }
 
-    std::unique_ptr<Node>* Node48::find_child_slot(u8 key_byte) noexcept
+    std::unique_ptr<Node>* Node48::find_child_slot(u8 keyByte) noexcept
     {
-        u8 index = _keys[key_byte];
+        u8 index = _keys[keyByte];
         if (index != NON_EXISTING_EDGE && _children[index] != nullptr) {
             return &_children[index];
         }
         return nullptr;
     }
 
-    Node* Node256::find_child(u8 key_byte) noexcept
+    Node* Node256::find_child(u8 keyByte) noexcept
     {
-        auto* slot = Node256::find_child_slot(key_byte);
+        auto* slot = Node256::find_child_slot(keyByte);
         return slot == nullptr ? nullptr : slot->get();
     }
 
-    std::unique_ptr<Node>* Node256::find_child_slot(u8 key_byte) noexcept
+    std::unique_ptr<Node>* Node256::find_child_slot(u8 keyByte) noexcept
     {
-        if (_children[key_byte] == nullptr) {
+        if (_children[keyByte] == nullptr) {
             return nullptr;
         }
-        return &_children[key_byte];
+        return &_children[keyByte];
     }
 
     //!DANGEROUS, NO GROW IF FULL
     //Insertion Sort
-    void Node4::insert_pure(u8 key, std::unique_ptr<Node> child) noexcept
+    void Node4::insert_unchecked(u8 keyByte, std::unique_ptr<Node> childNode) noexcept
     {
         assert(_child_count < 4);
-        u8 insert_pos = 0;
-        while (insert_pos < _child_count && _keys[insert_pos] < key) {
-            ++insert_pos;
+        u8 insertPos = 0;
+        while (insertPos < _child_count && _keys[insertPos] < keyByte) {
+            ++insertPos;
         }
-        for (u16 i = _child_count; i > insert_pos; --i) {
+        for (u16 i = _child_count; i > insertPos; --i) {
             _keys[i] = _keys[i - 1];
             _children[i] = std::move(_children[i - 1]);
         }
-        _keys[insert_pos] = key;
-        _children[insert_pos] = std::move(child);
+        _keys[insertPos] = keyByte;
+        _children[insertPos] = std::move(childNode);
         ++_child_count;
     }
 
     //!DANGEROUS, CRASHES IF NO CHILD AVAILABLE. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
-    void Node4::remove_pure(u8 key) noexcept
+    void Node4::remove_unchecked(u8 keyByte) noexcept
     {
         assert(_child_count > NO_CHILD);
 
-        u8 remove_pos = 0;
-        while (remove_pos < _child_count && _keys[remove_pos] < key) {
-            ++remove_pos;
+        u8 removePos = 0;
+        while (removePos < _child_count && _keys[removePos] < keyByte) {
+            ++removePos;
         }
-        if (remove_pos < _child_count && _keys[remove_pos] == key) {
-            assert(_children[remove_pos] == nullptr);
+        if (removePos < _child_count && _keys[removePos] == keyByte) {
+            assert(_children[removePos] == nullptr);
 
-            for (u16 i = remove_pos; i < _child_count - 1; ++i) {
+            for (u16 i = removePos; i < _child_count - 1; ++i) {
                 _keys[i] = _keys[i + 1];
                 _children[i] = std::move(_children[i + 1]);
             }
@@ -121,36 +121,36 @@ namespace pinguqueen::datastructs {
     }
 
     //!DANGEROUS, NO GROW IF FULL
-    void Node16::insert_pure(u8 key, std::unique_ptr<Node> child) noexcept
+    void Node16::insert_unchecked(u8 keyByte, std::unique_ptr<Node> childNode) noexcept
     {
         assert(_child_count < 16);
-        u8 insert_pos = 0;
-        while (insert_pos < _child_count && _keys[insert_pos] < key) {
-            ++insert_pos;
+        u8 insertPos = 0;
+        while (insertPos < _child_count && _keys[insertPos] < keyByte) {
+            ++insertPos;
         }
-        for (u16 i = _child_count; i > insert_pos; --i) {
+        for (u16 i = _child_count; i > insertPos; --i) {
             _keys[i] = _keys[i - 1];
             _children[i] = std::move(_children[i - 1]);
         }
-        _keys[insert_pos] = key;
-        _children[insert_pos] = std::move(child);
+        _keys[insertPos] = keyByte;
+        _children[insertPos] = std::move(childNode);
         ++_child_count;
     }
 
 
     //!DANGEROUS, NO SHRINKING IF TOO EMPTY. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
-    void Node16::remove_pure(u8 key) noexcept
+    void Node16::remove_unchecked(u8 keyByte) noexcept
     {
         assert(_child_count > SHRINKING_CHILD_COUNT);
 
-        u8 remove_pos = 0;
-        while (remove_pos < _child_count && _keys[remove_pos] < key) {
-            ++remove_pos;
+        u8 removePos = 0;
+        while (removePos < _child_count && _keys[removePos] < keyByte) {
+            ++removePos;
         }
-        if (remove_pos < _child_count && _keys[remove_pos] == key) {
-            assert(_children[remove_pos] == nullptr);
+        if (removePos < _child_count && _keys[removePos] == keyByte) {
+            assert(_children[removePos] == nullptr);
 
-            for (u16 i = remove_pos; i < _child_count - 1; ++i) {
+            for (u16 i = removePos; i < _child_count - 1; ++i) {
                 _keys[i] = _keys[i + 1];
                 _children[i] = std::move(_children[i + 1]);
             }
@@ -163,31 +163,31 @@ namespace pinguqueen::datastructs {
 
 
     //!DANGEROUS, NO GROW IF FULL
-    void Node48::insert_pure(u8 key, std::unique_ptr<Node> child) noexcept
+    void Node48::insert_unchecked(u8 keyByte, std::unique_ptr<Node> childNode) noexcept
     {
         assert(_child_count < GROW_CHILD_COUNT);
-        u8 free_idx = 0;
+        u8 freeIdx = 0;
         for (u8 i = 0; i < 48; ++i) {
             if (_children[i] == nullptr) {
-                free_idx = i;
+                freeIdx = i;
                 break;
             }
         }
-        _children[free_idx] = std::move(child);
-        _keys[key] = free_idx;
+        _children[freeIdx] = std::move(childNode);
+        _keys[keyByte] = freeIdx;
         ++_child_count;
     }
 
     //!DANGEROUS, NO SHRINKING IF TOO EMPTY. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
-    void Node48::remove_pure(u8 key) noexcept
+    void Node48::remove_unchecked(u8 keyByte) noexcept
     {
         assert(_child_count > SHRINKING_CHILD_COUNT);
 
-        u8 child_idx = _keys[key];
-        if (child_idx != Node48::NON_EXISTING_EDGE) {
-            assert(_children[child_idx] == nullptr);
-            _children[child_idx].reset();
-            _keys[key] = Node48::NON_EXISTING_EDGE;
+        u8 childIdx = _keys[keyByte];
+        if (childIdx != Node48::NON_EXISTING_EDGE) {
+            assert(_children[childIdx] == nullptr);
+            _children[childIdx].reset();
+            _keys[keyByte] = Node48::NON_EXISTING_EDGE;
             --_child_count;
         }
 
@@ -195,19 +195,19 @@ namespace pinguqueen::datastructs {
 
 
     //!DANGEROUS, NO GROW IF FULL
-    void Node256::insert_pure(u8 key, std::unique_ptr<Node> child) noexcept
+    void Node256::insert_unchecked(u8 keyByte, std::unique_ptr<Node> childNode) noexcept
     {
-        assert(_children[key] == nullptr);
-        _children[key] = std::move(child);
+        assert(_children[keyByte] == nullptr);
+        _children[keyByte] = std::move(childNode);
         ++_child_count;
     }
 
     //!DANGEROUS, NO SHRINKING IF TOO EMPTY. EXPECTS THE CHILD SLOT TO BE EMPTY ALREADY.
-    void Node256::remove_pure(u8 key) noexcept
+    void Node256::remove_unchecked(u8 keyByte) noexcept
     {
         assert(_child_count > SHRINKING_CHILD_COUNT);
-        assert(_children[key] == nullptr);
-        _children[key].reset();
+        assert(_children[keyByte] == nullptr);
+        _children[keyByte].reset();
         --_child_count;
     }
     

@@ -17,23 +17,23 @@ namespace pinguqueen::datastructs
         using Self = AdaptiveRadixTrie;
         std::unique_ptr<Node> _root = nullptr;
 
-        static void replace(std::unique_ptr<Node>& dest, std::unique_ptr<Node> src) noexcept;
+        static void replace(std::unique_ptr<Node>& destinationSlot, std::unique_ptr<Node> sourceNode) noexcept;
         [[nodiscard]] static bool is_leaf(const Node* node) noexcept;
         [[nodiscard]] static std::string_view load_representative_key(const Node* node) noexcept;
 
-        static void grow_4_to_16(std::unique_ptr<Node>& parent_slot) noexcept;
-        static void grow_16_to_48(std::unique_ptr<Node>& parent_slot) noexcept;
-        static void grow_48_to_256(std::unique_ptr<Node>& parent_slot) noexcept;
-        static void shrink_256_to_48(std::unique_ptr<Node>& parent_slot) noexcept;
-        static void shrink_48_to_16(std::unique_ptr<Node>& parent_slot) noexcept;
-        static void shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexcept;
+        static void grow_4_to_16(std::unique_ptr<Node>& parentSlot) noexcept;
+        static void grow_16_to_48(std::unique_ptr<Node>& parentSlot) noexcept;
+        static void grow_48_to_256(std::unique_ptr<Node>& parentSlot) noexcept;
+        static void shrink_256_to_48(std::unique_ptr<Node>& parentSlot) noexcept;
+        static void shrink_48_to_16(std::unique_ptr<Node>& parentSlot) noexcept;
+        static void shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexcept;
 
-        static void add_child(std::unique_ptr<Node>& parent, u8 key, std::unique_ptr<Node> child) noexcept;
-        static void remove_child(std::unique_ptr<Node>& parent, u8 key) noexcept;
+        static void add_child(std::unique_ptr<Node>& parent, u8 keyByte, std::unique_ptr<Node> childNode) noexcept;
+        static void remove_child(std::unique_ptr<Node>& parent, u8 keyByte) noexcept;
         [[nodiscard]] static u32 check_prefix(const Node* node, std::string_view key, u32 depth) noexcept;
         [[nodiscard]] LeafNode* find_leaf_node(std::string_view key) noexcept;
         [[nodiscard]] static std::vector<std::string> collect_all_leaves(Node* node);
-        static void insert_node( std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth);
+        static void insert_node(std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth);
         static void delete_node (std::unique_ptr<Node>& node, std::string_view key, u32 depth) noexcept;
 
 

@@ -21,7 +21,7 @@ namespace pinguqueen::file {
          ArtIndexBuilder(ArtIndexBuilder&&) = default;
          ArtIndexBuilder& operator=(ArtIndexBuilder&&) = delete;
 
-         [[nodiscard]] datastructs::AdaptiveRadixTrie& art() { return _art; }
+         [[nodiscard]] datastructs::AdaptiveRadixTrie& create_art() { return _art; }
 
 
 

@@ -138,7 +138,7 @@ void run_lookup_benchmark(
     fs::current_path(tmp.path);
 
     pinguqueen::file::ArtIndexBuilder builder;
-    pinguqueen::datastructs::AdaptiveRadixTrie& trie = builder.art();
+    pinguqueen::datastructs::AdaptiveRadixTrie& trie = builder.create_art();
 
     for (auto _ : state) {
         for (auto const& key : paths) {
