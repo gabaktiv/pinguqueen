@@ -571,7 +571,10 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
         return nullptr;
     }
 
-    std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_prefix(const std::string& prefix) {
+
+
+    std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_prefix(const std::string& prefix)
+    {
         if (_root == nullptr) return {};
 
         Node* current = _root.get();
@@ -618,7 +621,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
         return collect_all_leaves(current);
     }
 
-    std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_substring(const std::string& substring) {
+    std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_substring(const std::string& substring)
+    {
         if (_root == nullptr) return {};
 
         std::vector<std::string> results = collect_all_leaves(_root.get());
