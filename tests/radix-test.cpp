@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "../src/core/file-info.hpp"
-#include "radix-trie/node.hpp"
-#include "radix-trie/adaptive-radix-trie.hpp"
+#include "adaptive-radix-trie/node.hpp"
+#include "adaptive-radix-trie/adaptive-radix-trie.hpp"
 
 #include <algorithm>
 #include <memory>

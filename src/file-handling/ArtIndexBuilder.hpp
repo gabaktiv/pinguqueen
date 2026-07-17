@@ -3,7 +3,7 @@
 //
 #pragma once
 #include <filesystem>
-#include "../radix-trie/adaptive-radix-trie.hpp"
+#include "../adaptive-radix-trie/adaptive-radix-trie.hpp"
 #include "../core/file-info.hpp"
 
 namespace pinguqueen::file {

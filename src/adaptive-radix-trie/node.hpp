@@ -11,7 +11,8 @@
  * - TODO: Ich nutze aus, dass die letzten 3 bits jeder erster speicheradresse einer allokation 0 sind und erkenne mit pointertagging dann, in dem ich den letzten bit auf 1 setze, ob mein knoten ein Leaf is
  * - Die Node Implementierungs-Entscheidungen sind aus dem in der Readme verlinkten Paper zurückzuführen,
  * wobei nur der optimistische Ansatz implementiert ist mit der _prefix_skip_length variabel.
- * - Die Funktionen insert_pure und remove_pure sind nicht virtuell, da zu einem, der Leaf Node diese Funktionen nicht braucht, und sowieso im Kontext des Nutzen abgefragt werden sollte,
+ * - Die Funktionen insert_pure und remove_pure sind nicht virtuell, da zu einem, der Leaf Node diese Funktionen nicht braucht,
+ * und sowieso im Kontext des Nutzen abgefragt werden sollte,
  * was für eine Art Knoten diese Funktion ausführt, da diese zuvor vielleicht schrumpfen oder erweitert werden müssen
  *  - Ich habe mich für structs statt Klassen entschieden, da die finale Verwaltung in der RadxiTrie Klasse verwendet wird.
 */

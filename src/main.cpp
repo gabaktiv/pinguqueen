@@ -1,7 +1,7 @@
 #include "global.hpp"
 #include "core/visualiser.hpp"
 #include "file-handling/ArtIndexBuilder.hpp"
-#include "radix-trie/adaptive-radix-trie.hpp"
+#include "adaptive-radix-trie/adaptive-radix-trie.hpp"
 
 int main(int argc, char *argv[]) {
 

@@ -34,8 +34,8 @@ endif()
 
 # Core-Library
 add_library(trie_core
-        src/radix-trie/adaptive-radix-trie.cpp
-        src/radix-trie/node.cpp
+        src/adaptive-radix-trie/adaptive-radix-trie.cpp
+        src/adaptive-radix-trie/node.cpp
 )
 add_library(file_core
         src/file-handling/ArtIndexBuilder.cpp

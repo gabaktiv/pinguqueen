@@ -21,7 +21,7 @@ shared-prefix paths and deletion from prepared tries.
 #include <vector>
 
 #include "../src/core/file-info.hpp"
-#include "radix-trie/adaptive-radix-trie.hpp"
+#include "adaptive-radix-trie/adaptive-radix-trie.hpp"
 
 namespace {
 

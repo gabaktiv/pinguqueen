@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "../global.hpp"
-#include "../radix-trie/adaptive-radix-trie.hpp"
+#include "../adaptive-radix-trie/adaptive-radix-trie.hpp"
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/dom/elements.hpp>

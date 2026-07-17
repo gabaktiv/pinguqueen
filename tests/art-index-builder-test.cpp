@@ -2,7 +2,7 @@
 
 #include "../src/file-handling/ArtIndexBuilder.hpp"
 #include "../src/core/file-info.hpp"
-#include "../src/radix-trie/adaptive-radix-trie.hpp"
+#include "../src/adaptive-radix-trie/adaptive-radix-trie.hpp"
 
 #include <algorithm>
 #include <cstdio>
