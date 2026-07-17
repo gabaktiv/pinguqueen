@@ -4,8 +4,8 @@
 
 
 /*
- * - Header-Datei des Adaptiven-Radix-Trie anhand des in der Readme verlinkten Paper.
- * - Viele Funktionen sind static, da sie nur die Nodes verwalten
+ * - Header file of the Adaptive Radix Trie based on the paper linked in the README.
+ * - Many functions are static since they only manage nodes.
 */
 
 namespace pinguqueen::datastructs
@@ -50,10 +50,10 @@ namespace pinguqueen::datastructs
         [[nodiscard]] Node* root_node() noexcept { return _root.get(); }
         [[nodiscard]] core::FileInfo* search(std::string key) noexcept;
 
-        //nicht dem Paper entsprechend. Diese Funktion gibt alle Suchelemente zurück mit einem bestimmten Präfix
+        // Returns all entries that match the given prefix (not part of the original paper)
         [[nodiscard]] std::vector<std::string> get_all_paths_with_prefix(const std::string& prefix);
 
-        //Alle Pfade, die den Teilstring enthalten (collect_all_leaves + find-Filter)
+        // Returns all paths containing the given substring (collect_all_leaves + filter)
         [[nodiscard]] std::vector<std::string> get_all_paths_with_substring(const std::string& substring);
 
     };

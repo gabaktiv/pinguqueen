@@ -18,6 +18,8 @@ namespace pinguqueen::datastructs
         return node->is_leaf();
     }
 
+    // Traverses from the given node down to the leftmost leaf and returns its full key.
+    // This is used to obtain a representative key for path compression comparisons.
     std::string_view AdaptiveRadixTrie::load_representative_key(const Node* node) noexcept
     {
         assert(node != nullptr);
@@ -59,6 +61,7 @@ namespace pinguqueen::datastructs
         return static_cast<const LeafNode*>(curr)->_full_key;
     }
 
+    // Grows a Node4 into a Node16 by copying keys and children into the larger array.
     void AdaptiveRadixTrie::grow_4_to_16(std::unique_ptr<Node>& parentSlot) noexcept {
         assert(parentSlot->_type == NodeType::Node4);
 
@@ -80,6 +83,7 @@ namespace pinguqueen::datastructs
         parentSlot = std::move(newNode);
     }
 
+    // Grows a Node16 into a Node48 by remapping the sorted key array into the hash-indexed layout.
     void AdaptiveRadixTrie::grow_16_to_48(std::unique_ptr<Node>& parentSlot) noexcept
     {
         assert(parentSlot->_type == NodeType::Node16);
@@ -104,6 +108,7 @@ namespace pinguqueen::datastructs
         parentSlot = std::move(newNode);
     }
 
+    // Grows a Node48 into a Node256 by using the key bytes directly as child indices.
     void AdaptiveRadixTrie::grow_48_to_256(std::unique_ptr<Node>& parentSlot) noexcept
     {
         assert(parentSlot->_type == NodeType::Node48);
@@ -126,6 +131,7 @@ namespace pinguqueen::datastructs
         parentSlot = std::move(newNode);
     }
 
+    // Shrinks a Node256 into a Node48 by building the reverse key-to-index mapping.
     void AdaptiveRadixTrie::shrink_256_to_48(std::unique_ptr<Node>& parentSlot) noexcept
     {
         assert(parentSlot != nullptr);
@@ -151,6 +157,7 @@ namespace pinguqueen::datastructs
         parentSlot = std::move(newNode);
     }
 
+    // Shrinks a Node48 into a Node16 by iterating over all 256 key slots and collecting active children.
     void AdaptiveRadixTrie::shrink_48_to_16(std::unique_ptr<Node>& parentSlot) noexcept
 {
     assert(parentSlot != nullptr);
@@ -159,7 +166,7 @@ namespace pinguqueen::datastructs
     auto* oldNode = static_cast<Node48*>(parentSlot.get());
     auto newNode = std::make_unique<Node16>();
 
-    // Metadaten übertragen
+    // Transfer metadata
     newNode->_prefix_skip_length = oldNode->_prefix_skip_length;
     newNode->_child_count = oldNode->_child_count;
     newNode->_type = NodeType::Node16;
@@ -177,6 +184,7 @@ namespace pinguqueen::datastructs
     parentSlot = std::move(newNode);
 }
 
+    // Shrinks a Node16 into a Node4 by copying the sorted keys and children directly.
 void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexcept
 {
     assert(parentSlot != nullptr);
@@ -199,6 +207,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
     }
 
 
+    // Adds a child to the given parent node. If the parent is full, it is first
+    // grown to the next node type (Node4 -> Node16 -> Node48 -> Node256).
     void AdaptiveRadixTrie::add_child(std::unique_ptr<Node>& parent, u8 keyByte, std::unique_ptr<Node> childNode) noexcept
     {
         if (parent->is_full()) {
@@ -244,6 +254,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
         }
     }
 
+    // Removes a child from the given parent node. If the parent has too few children,
+    // it is shrunk to the previous node type (Node256 -> Node48 -> Node16 -> Node4).
     void AdaptiveRadixTrie::remove_child(std::unique_ptr<Node>& parent, u8 keyByte) noexcept
 {
     switch (parent->_type)
@@ -300,6 +312,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
     }
 }
 
+    // Loads the representative key of a node and compares it character by character
+    // with the search key. Returns the number of matching characters.
     u32 AdaptiveRadixTrie::check_prefix(const Node* node, std::string_view key, u32 depth) noexcept
     {
         const Node* curr = node;
@@ -339,6 +353,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
     }
 
 
+    // Traverses the trie from root to leaf, following the path that matches the given key.
+    // Handles path compression by verifying skipped segments via check_prefix.
     LeafNode* AdaptiveRadixTrie::find_leaf_node(std::string_view key) noexcept
     {
         Node* curr = _root.get();
@@ -353,7 +369,7 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
                 if (leaf->_full_key == key) {
                     return leaf;
                 }
-                return nullptr; // Mismatch am Ende des Pfads
+                return nullptr; // Key not found at end of path
             }
 
             if (curr->_prefix_skip_length > 0){
@@ -375,6 +391,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
         return nullptr;
     }
 
+    // Iteratively collects all leaf keys in the subtree rooted at startNode.
+    // Uses an explicit stack instead of recursion to avoid stack overflow on deep tries.
     std::vector<std::string> AdaptiveRadixTrie::collect_all_leaves(Node* startNode) {
         std::vector<std::string> results;
         if (startNode == nullptr) return results;
@@ -427,11 +445,12 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
         return results;
     }
 
-/*
- *Insert Function is very similar to the Code of the Paper with more out-of-bounds checking. It works recursiv and follows
- *the optimisitic approach
- */
-    void AdaptiveRadixTrie::insert_node (std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
+    // Recursive insert following the optimistic approach from the paper.
+    // Handles three cases:
+    //   1. Empty path -> create new leaf
+    //   2. Lazy Expansion -> split a leaf by computing the common prefix
+    //   3. Path Compression -> split the compressed segment where it diverges
+    void AdaptiveRadixTrie::insert_node(std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
     {
         auto leaf = std::make_unique<LeafNode>();
         leaf->_type = NodeType::LeafNode;
@@ -443,7 +462,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
             replace(node, std::move(leaf));
             return;
         }
-        //Lazy Expansion
+        // Lazy Expansion: If we hit a leaf, split it by computing the common prefix
+        // between the existing key and the new key, then create a Node4 with two children.
         if (node->is_leaf()){
             auto* existingLeaf = static_cast<LeafNode*>(node.get());
             if (existingLeaf->_full_key == key) {
@@ -472,7 +492,9 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
             replace(node, std::move(newNode));
             return;
         }
-        //Path Compression
+        // Path Compression: The compressed segment diverges from the search key.
+        // Split the segment at the divergence point and create a new Node4 with
+        // the new leaf and the old subtree as children.
         u32 matchedLength = check_prefix(node.get(), key, depth);
         if (matchedLength != node->_prefix_skip_length) {
             std::unique_ptr<Node> newNode = std::make_unique<Node4>();
@@ -510,6 +532,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
     }
 
 
+    // Recursive delete that removes the leaf matching the key and cleans up
+    // empty nodes on the way back up via remove_child.
     void AdaptiveRadixTrie::delete_node(std::unique_ptr<Node>& node, std::string_view key, u32 depth) noexcept
     {
         if (node == nullptr) return;
@@ -532,6 +556,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
 
         if (nextSlot != nullptr) {
             delete_node(*nextSlot, key, depth + 1);
+            // Post-order cleanup: if the recursive delete emptied this child,
+            // remove it from the parent and potentially shrink the parent node.
             if (*nextSlot == nullptr) {
                 remove_child(node, keyByte);
             }
@@ -539,13 +565,15 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
     }
 
     /*
-     *  Terminal-Symbol is being used to avoid loss of information. Example: Trie: main.cpp; Adding: main.c . Without the Terminal-Symbol
-     *  the Trie gets splitted into: main.c -> pp . Because information cannot be stored in innernodes, the "pp" leaf will store the Information of
-     *  main.cpp but not main.c . The Information of main.c will be Lost. With the Terminal Symboll it gets changedn into:
-     *  Trie: main.cpp\0; Adding: main.c\0 .
-     *  Split: main.c -> \0    |<- Information of main.c
-     *                -> pp\0  |<- Information of main.cpp
+     * The terminal symbol ('\0') is appended to every key to avoid loss of information.
+     * Example: Trie contains "main.cpp"; inserting "main.c" would split the path into
+     * "main.c" -> "pp", where the "pp" leaf stores main.cpp's info but main.c's info is lost.
+     * With the terminal symbol it becomes:
+     *   "main.cpp\0" and "main.c\0" which split cleanly:
+     *     "main.c" -> "\0"   (info of main.c)
+     *              -> "pp\0" (info of main.cpp)
     */
+    // Appends the terminal symbol to the key and delegates to insert_node.
     void AdaptiveRadixTrie::insert( std::string key, std::unique_ptr<core::FileInfo> value) noexcept
     {
         key += TERMINAL;
@@ -553,6 +581,7 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
         insert_node(_root, view, std::move(value), 0);
     }
 
+    // Appends the terminal symbol to the key and delegates to delete_node.
     void AdaptiveRadixTrie::remove(std::string key) noexcept
     {
         key += TERMINAL;
@@ -560,6 +589,7 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
         delete_node(_root, view, 0);
     }
 
+    // Appends the terminal symbol, finds the matching leaf, and returns its metadata.
     core::FileInfo* AdaptiveRadixTrie::search(std::string key) noexcept
     {
         key += TERMINAL;
@@ -572,7 +602,8 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
     }
 
 
-
+    // Traverses the trie following the prefix path, handling path compression along the way.
+    // Once the entire prefix is matched, collects all leaves under the current node.
     std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_prefix(const std::string& prefix)
     {
         if (_root == nullptr) return {};
@@ -594,6 +625,7 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
                 break;
             }
 
+            // Check if the compressed path matches the search prefix
             if (current->_prefix_skip_length > 0) {
                 u32 matchedLength = check_prefix(current, prefix, depth);
                 u32 remaining = prefix.size() - depth;
@@ -608,6 +640,7 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
                 }
             }
 
+            // Advance depth and descend into the matching child
             depth += current->_prefix_skip_length;
 
             if (depth >= prefix.size()) {
@@ -618,15 +651,19 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parentSlot) noexce
             ++depth;
         }
 
+        // Fallback: collect all leaves if the prefix matched up to this point
         return collect_all_leaves(current);
     }
 
+    // Collects all leaves and filters them by checking if the substring is contained in each path.
     std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_substring(const std::string& substring)
     {
         if (_root == nullptr) return {};
 
         std::vector<std::string> results = collect_all_leaves(_root.get());
 
+        // Erase-Remove idiom: remove_if shifts non-matching paths to the front,
+        // then erase trims the leftover elements from the vector.
         results.erase(
             std::remove_if(results.begin(), results.end(),
                 [&](const std::string& path) {

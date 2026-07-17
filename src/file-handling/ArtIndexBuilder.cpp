@@ -2,9 +2,8 @@
 
 namespace pinguqueen::file {
 
-
-    //init function scans the computer where the Programm was called and puts the filenames as keys and the metadata (fileinfo) as values into his ART.
-
+    // Recursively scans the current working directory, inserting each file's relative path
+    // as key and its metadata (name, size, last write time) as value into the ART.
     void ArtIndexBuilder::init()
     {
         namespace fs = std::filesystem;

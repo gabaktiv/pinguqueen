@@ -6,16 +6,19 @@
 #include <string>
 #include <cassert>
 /*
- * - Hier ist die Node-Struktur des Adaptive-Radix-Trie implementiert.
- * Dabei ermöglicht diese Struktur die dynamische anpassung der Anzahl der Kinder, um Speicher anzupassen.
- * - Die Anzahl der Kinder is hard-coded, Struktur wie std::vector wird nicht verwendet, da dieser standartmäßig mind. 24 Bytes overhead verbraucht.
- * - TODO: Ich nutze aus, dass die letzten 3 bits jeder erster speicheradresse einer allokation 0 sind und erkenne mit pointertagging dann, in dem ich den letzten bit auf 1 setze, ob mein knoten ein Leaf is
- * - Die Node Implementierungs-Entscheidungen sind aus dem in der Readme verlinkten Paper zurückzuführen,
- * wobei nur der optimistische Ansatz implementiert ist mit der _prefix_skip_length variabel.
- * - Die Funktionen insert_pure und remove_pure sind nicht virtuell, da zu einem, der Leaf Node diese Funktionen nicht braucht,
- * und sowieso im Kontext des Nutzen abgefragt werden sollte,
- * was für eine Art Knoten diese Funktion ausführt, da diese zuvor vielleicht schrumpfen oder erweitert werden müssen
- *  - Ich habe mich für structs statt Klassen entschieden, da die finale Verwaltung in der RadxiTrie Klasse verwendet wird.
+ * - Node structure of the Adaptive Radix Trie based on the paper linked in the README.
+ * - The structure dynamically adjusts the number of children to save memory.
+ * - The number of children is hard-coded. Structures like std::vector are not used since they
+ *   typically have at least 24 bytes of overhead.
+ * - TODO: Exploit that the last 3 bits of any allocation start address are 0 and use pointer
+ *   tagging (set last bit to 1) to identify leaf nodes.
+ * - Node implementation decisions follow the paper linked in the README, but only the
+ *   optimistic approach is implemented via the _prefix_skip_length variable.
+ * - insert_unchecked and remove_unchecked are not virtual because the LeafNode does not need
+ *   them and the caller should already know which node type is being operated on, since
+ *   grow/shrink may be required beforehand.
+ * - Structs are used instead of classes since the final management is handled by the
+ *   AdaptiveRadixTrie class.
 */
 
 namespace pinguqueen::datastructs {
@@ -24,7 +27,7 @@ namespace pinguqueen::datastructs {
 
     struct Node
     {
-        //  Anzahl der zu blind überspringenden Zeichen des Suchstrings
+        // Number of characters to blindly skip in the search key (path compression)
         u32 _prefix_skip_length = 0;
 
         u16 _child_count = 0;
@@ -55,7 +58,7 @@ namespace pinguqueen::datastructs {
         std::string _full_key;
         std::unique_ptr<core::FileInfo> _metadata;
 
-        //Blätter sollten keine Informationen über Anzahl der Kinder geben
+        // Leaf nodes should not provide any information about children
         [[nodiscard]] bool is_full() const noexcept override { assert(false); return false; }
         [[nodiscard]] bool is_too_empty() const noexcept override{ assert(false); return false; }
 

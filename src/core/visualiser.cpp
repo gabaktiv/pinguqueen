@@ -10,6 +10,7 @@ namespace pinguqueen::core
 
     Visualiser::~Visualiser() = default;
 
+    // Recalculates total page count and slices _results into _displayed for the current page.
     void Visualiser::update_page()
     {
         _total_pages = std::max(1, (static_cast<int>(_results.size()) + PAGE_SIZE - 1) / PAGE_SIZE);
@@ -23,6 +24,7 @@ namespace pinguqueen::core
                           _results.begin() + static_cast<std::ptrdiff_t>(end));
     }
 
+    // Re-queries the trie when the search input has changed and strips terminal symbols from results.
     void Visualiser::update_results()
     {
         if (_search == _prev_search) {
@@ -52,6 +54,7 @@ namespace pinguqueen::core
         return _mode == SearchMode::Prefix ? " [Prefix]" : " [Substr]";
     }
 
+    // Builds the ftxui layout with search input, paginated result list, and file info panel.
     ftxui::Element Visualiser::render()
     {
         auto pageStr = "Page " + std::to_string(_page + 1) + "/" + std::to_string(_total_pages);
@@ -102,6 +105,7 @@ namespace pinguqueen::core
         });
     }
 
+    // Sets up the fullscreen TUI with input, menu, and keyboard event handling (Tab for paging, F2 for mode toggle).
     void Visualiser::run()
     {
         auto screen = ftxui::ScreenInteractive::Fullscreen();

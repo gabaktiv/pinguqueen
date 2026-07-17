@@ -18,6 +18,7 @@ namespace pinguqueen::datastructs {
         return slot == nullptr ? nullptr : slot->get();
     }
 
+    // Linear search through the sorted key array to find the matching child slot.
     std::unique_ptr<Node>* Node4::find_child_slot(u8 keyByte) noexcept
     {
         for (u16 i = 0; i < _child_count; ++i) {
@@ -31,18 +32,23 @@ namespace pinguqueen::datastructs {
         auto* slot = Node16::find_child_slot(keyByte);
         return slot == nullptr ? nullptr : slot->get();
     }
-//TODO: Binäre Suchalternative implementieren
+//TODO: Implement binary search alternative
+    // SSE2 parallel comparison of all 16 keys against the search byte for constant-time lookup.
+    // 1. Broadcast the search byte into all 16 lanes of a 128-bit register
+    // 2. Load the 16 sorted keys from the node into another register
+    // 3. Compare all 16 keys in parallel, producing a bitmask of matches
+    // 4. Extract the position of the first match (CTZ = count trailing zeros)
     std::unique_ptr<Node>* Node16::find_child_slot(u8 keyByte) noexcept
     {
-        __m128i key_vector = _mm_set1_epi8(static_cast<char>(keyByte));
-        __m128i node_keys = _mm_loadu_si128(reinterpret_cast<const __m128i*>(_keys));
-        __m128i cmp = _mm_cmpeq_epi8(key_vector, node_keys);
-        u32 mask = static_cast<u32>(_mm_movemask_epi8(cmp));
+        __m128i key_vector = _mm_set1_epi8(static_cast<char>(keyByte));       // broadcast search byte
+        __m128i node_keys = _mm_loadu_si128(reinterpret_cast<const __m128i*>(_keys)); // load 16 keys
+        __m128i cmp = _mm_cmpeq_epi8(key_vector, node_keys);                 // compare all 16
+        u32 mask = static_cast<u32>(_mm_movemask_epi8(cmp));                 // bitmask of matches
 
         if (mask != 0) {
-            u32 index = static_cast<u32>(__builtin_ctz(mask));
+            u32 index = static_cast<u32>(__builtin_ctz(mask));               // position of first match
 
-            if (index < _child_count) {
+            if (index < _child_count) {                                       // only valid if within child count
                 return &_children[index];
             }
         }
@@ -57,6 +63,7 @@ namespace pinguqueen::datastructs {
         return slot == nullptr ? nullptr : slot->get();
     }
 
+    // Direct hash lookup: key byte indexes into the key array to find the child index.
     std::unique_ptr<Node>* Node48::find_child_slot(u8 keyByte) noexcept
     {
         u8 index = _keys[keyByte];
@@ -72,6 +79,7 @@ namespace pinguqueen::datastructs {
         return slot == nullptr ? nullptr : slot->get();
     }
 
+    // Direct array access: key byte is the child index.
     std::unique_ptr<Node>* Node256::find_child_slot(u8 keyByte) noexcept
     {
         if (_children[keyByte] == nullptr) {
