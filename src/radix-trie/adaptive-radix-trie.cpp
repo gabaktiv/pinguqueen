@@ -114,7 +114,7 @@ namespace pinguqueen::datastructs
         new_node->_child_count = old_node->_child_count;
         new_node->_prefix_skip_length = old_node->_prefix_skip_length;
 
-        for (u16 key_byte = 0; key_byte < Node256::FULL; ++key_byte){
+        for (u16 key_byte = 0; key_byte < Node256::MAX_CHILD_COUNT; ++key_byte){
             u8 index = old_node->_keys[key_byte];
             if (index != Node48::NON_EXISTING_EDGE){
                 new_node->_children[key_byte] = std::move(old_node->_children[index]);
@@ -141,7 +141,7 @@ namespace pinguqueen::datastructs
         std::fill(std::begin(new_node->_keys), std::end(new_node->_keys), Node48::NON_EXISTING_EDGE);
 
         u8 next_free_slot = 0;
-        for (u16 key_byte = 0; key_byte < Node256::FULL; ++key_byte) {
+        for (u16 key_byte = 0; key_byte < Node256::MAX_CHILD_COUNT; ++key_byte) {
             if (old_node->_children[key_byte] != nullptr) {
                 new_node->_children[next_free_slot] = std::move(old_node->_children[key_byte]);
                 new_node->_keys[key_byte] = next_free_slot;

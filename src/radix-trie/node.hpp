@@ -161,7 +161,7 @@ namespace pinguqueen::datastructs {
     struct Node256 : Node
     {
         std::unique_ptr<Node> _children[256]{};
-        static constexpr u16 FULL = 256;
+        static constexpr u16 MAX_CHILD_COUNT = 256;
         static constexpr u8 SHRINKING_CHILD_COUNT = 47;
 
 
@@ -173,7 +173,7 @@ namespace pinguqueen::datastructs {
         Node256(Node256&&) = delete;
         Node256& operator=(Node256&&) = delete;
 
-        [[nodiscard]] bool is_full() const noexcept override { return _child_count == FULL; }
+        [[nodiscard]] bool is_full() const noexcept override { return _child_count == MAX_CHILD_COUNT; }
         [[nodiscard]] bool is_too_empty() const noexcept override{ return _child_count == SHRINKING_CHILD_COUNT; }
 
         [[nodiscard]] Node* find_child(u8 key_byte) noexcept override;
