@@ -375,10 +375,63 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexc
         return nullptr;
     }
 
-/*Insert Function is very similar to the Code of the Paper with more out-of-bounds checking. It works recursiv and follows the
+    std::vector<std::string> AdaptiveRadixTrie::collect_all_leaves(Node* start_node) {
+        std::vector<std::string> results;
+        if (start_node == nullptr) return results;
+
+        std::vector<Node*> node_stack;
+        node_stack.reserve(256);
+        node_stack.push_back(start_node);
+
+        while (!node_stack.empty()) {
+            Node* current = node_stack.back();
+            node_stack.pop_back();
+
+            if (current->is_leaf()) {
+                auto* leaf = static_cast<LeafNode*>(current);
+                results.push_back(leaf->_full_key);
+                continue;
+            }
+
+            if (current->_type == NodeType::Node4) {
+                auto* n4 = static_cast<Node4*>(current);
+                for (int i = static_cast<int>(n4->_child_count) - 1; i >= 0; --i) {
+                    node_stack.push_back(n4->_children[i].get());
+                }
+            }
+            else if (current->_type == NodeType::Node16) {
+                auto* n16 = static_cast<Node16*>(current);
+                for (int i = static_cast<int>(n16->_child_count) - 1; i >= 0; --i) {
+                    node_stack.push_back(n16->_children[i].get());
+                }
+            }
+            else if (current->_type == NodeType::Node48) {
+                auto* n48 = static_cast<Node48*>(current);
+                for (int key_byte = 255; key_byte >= 0; --key_byte) {
+                    u8 index = n48->_keys[key_byte];
+                    if (index != Node48::NON_EXISTING_EDGE) {
+                        node_stack.push_back(n48->_children[index].get());
+                    }
+                }
+            }
+            else if (current->_type == NodeType::Node256) {
+                auto* n256 = static_cast<Node256*>(current);
+                for (int i = 255; i >= 0; --i) {
+                    if (n256->_children[i] != nullptr) {
+                        node_stack.push_back(n256->_children[i].get());
+                    }
+                }
+            }
+        }
+
+        return results;
+    }
+
+/*
+ *Insert Function is very similar to the Code of the Paper with more out-of-bounds checking. It works recursiv and follows
  *the optimisitic approach
-*/
-    void AdaptiveRadixTrie::insert_node( std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
+ */
+    void AdaptiveRadixTrie::insert_node (std::unique_ptr<Node>& node, std::string_view key, std::unique_ptr<core::FileInfo> information, u32 depth)
     {
         auto leaf = std::make_unique<LeafNode>();
         leaf->_type = NodeType::LeafNode;
@@ -520,74 +573,6 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexc
         return nullptr;
     }
 
-
-    std::vector<std::string> AdaptiveRadixTrie::collect_all_leaves(Node* start_node) {
-        std::vector<std::string> results;
-        if (start_node == nullptr) return results;
-
-        std::vector<Node*> node_stack;
-        node_stack.reserve(256);
-        node_stack.push_back(start_node);
-
-        while (!node_stack.empty()) {
-            Node* current = node_stack.back();
-            node_stack.pop_back();
-
-            if (current->is_leaf()) {
-                auto* leaf = static_cast<LeafNode*>(current);
-                results.push_back(leaf->_full_key);
-                continue;
-            }
-
-            if (current->_type == NodeType::Node4) {
-                auto* n4 = static_cast<Node4*>(current);
-                for (int i = static_cast<int>(n4->_child_count) - 1; i >= 0; --i) {
-                    node_stack.push_back(n4->_children[i].get());
-                }
-            }
-            else if (current->_type == NodeType::Node16) {
-                auto* n16 = static_cast<Node16*>(current);
-                for (int i = static_cast<int>(n16->_child_count) - 1; i >= 0; --i) {
-                    node_stack.push_back(n16->_children[i].get());
-                }
-            }
-            else if (current->_type == NodeType::Node48) {
-                auto* n48 = static_cast<Node48*>(current);
-                for (int key_byte = 255; key_byte >= 0; --key_byte) {
-                    u8 index = n48->_keys[key_byte];
-                    if (index != Node48::NON_EXISTING_EDGE) {
-                        node_stack.push_back(n48->_children[index].get());
-                    }
-                }
-            }
-            else if (current->_type == NodeType::Node256) {
-                auto* n256 = static_cast<Node256*>(current);
-                for (int i = 255; i >= 0; --i) {
-                    if (n256->_children[i] != nullptr) {
-                        node_stack.push_back(n256->_children[i].get());
-                    }
-                }
-            }
-        }
-
-        return results;
-    }
-
-    std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_substring(const std::string& substring) {
-        if (_root == nullptr) return {};
-
-        std::vector<std::string> results = collect_all_leaves(_root.get());
-
-        results.erase(
-            std::remove_if(results.begin(), results.end(),
-                [&](const std::string& path) {
-                    return path.find(substring) == std::string::npos;
-                }),
-            results.end());
-
-        return results;
-    }
-
     std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_prefix(const std::string& prefix) {
         if (_root == nullptr) return {};
 
@@ -633,6 +618,21 @@ void AdaptiveRadixTrie::shrink_16_to_4(std::unique_ptr<Node>& parent_slot) noexc
         }
 
         return collect_all_leaves(current);
+    }
+
+    std::vector<std::string> AdaptiveRadixTrie::get_all_paths_with_substring(const std::string& substring) {
+        if (_root == nullptr) return {};
+
+        std::vector<std::string> results = collect_all_leaves(_root.get());
+
+        results.erase(
+            std::remove_if(results.begin(), results.end(),
+                [&](const std::string& path) {
+                    return path.find(substring) == std::string::npos;
+                }),
+            results.end());
+
+        return results;
     }
 
 }
