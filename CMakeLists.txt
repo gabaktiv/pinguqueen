@@ -94,13 +94,6 @@ add_executable(radix_trie_tests
         tests/radix-test.cpp
 )
 
-add_executable(sandbox
-        benchmarks/sandbox.cpp
-)
-target_link_libraries(sandbox PRIVATE
-        trie_core
-)
-
 
 add_executable(art_index_builder_tests
         tests/art-index-builder-test.cpp
