@@ -67,9 +67,9 @@ namespace pinguqueen::file {
                         auto last_write = entry.last_write_time(ec);
                         if (ec) last_write = {};
                         _art.insert(
-                        relative.generic_string(),
-                        std::make_unique<core::FileInfo>(relative.generic_string(),
-                        static_cast<u32>(size), last_write)
+                             relative.generic_string(),
+                            std::make_unique<core::FileInfo>(relative.generic_string(),
+                                 static_cast<u32>(size), last_write)
                         );
                     }
 
