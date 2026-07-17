@@ -1,4 +1,5 @@
 #include "adaptive-radix-trie.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <utility>
@@ -9,7 +10,6 @@ namespace pinguqueen::datastructs
     {
         assert(src != nullptr);
         dest = std::move(src);
-
     }
 
     bool AdaptiveRadixTrie::is_leaf(const Node* node) noexcept

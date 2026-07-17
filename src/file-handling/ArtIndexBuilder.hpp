@@ -1,10 +1,8 @@
-//
-// Created by gabriel on 7/2/26.
-//
 #pragma once
-#include <filesystem>
 #include "../adaptive-radix-trie/adaptive-radix-trie.hpp"
-#include "../core/file-info.hpp"
+
+#include <filesystem>
+
 
 namespace pinguqueen::file {
 

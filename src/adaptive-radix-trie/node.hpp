@@ -1,6 +1,7 @@
 #pragma once
 #include "../global.hpp"
 #include "../core/file-info.hpp"
+
 #include <memory>
 #include <string>
 #include <cassert>
@@ -69,7 +70,6 @@ namespace pinguqueen::datastructs {
     // - It's important in the deletion process, that these arrays are filled from left to right with no spaces inbetween.
     // - Also inserting an edge will sort them with an insertion sort algorithm
     // (Handling of deletion, inserting and searching is implemented in the Adaptive-Radix-Trie Class, not here or the node.cpp)
-
     struct Node4 :  Node
     {
 

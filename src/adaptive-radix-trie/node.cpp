@@ -1,4 +1,5 @@
 #include "node.hpp"
+
 #include <algorithm>
 #include <format>
 #include <emmintrin.h>

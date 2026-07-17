@@ -1,13 +1,9 @@
-//
-// Created by gabriel on 7/3/26.
-//
 #pragma once
 #include "../global.hpp"
 #include "../adaptive-radix-trie/adaptive-radix-trie.hpp"
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/dom/elements.hpp>
-
 #include <string>
 #include <vector>
 

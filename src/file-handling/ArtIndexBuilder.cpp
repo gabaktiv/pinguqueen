@@ -1,7 +1,3 @@
-//
-// Created by gabriel on 7/2/26.
-//
-
 #include "ArtIndexBuilder.hpp"
 
 namespace pinguqueen::file {
